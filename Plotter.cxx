@@ -12,6 +12,56 @@ struct Axis{
     virtual ~Axis(){};
 }; // Axis
 
+struct Marker{
+    TString OutlineColor, FillColor;
+    double Size, OutlineWidthScale;
+    TString Shape;
+    vector<TString> AdditionalNodeOptions;
+
+    Marker(){
+        OutlineColor="black";
+        FillColor = "blue";
+        Size = 2; // mm
+        OutlineWidthScale = 0.05;
+        Shape = "circle";
+    }
+    virtual ~Marker(){}
+
+    TString Node(double x, double y){
+        TString Options = Form("color=%s, fill=%s, line width=%fmm, %s, minimum size=%fmm, inner sep=0pt",OutlineColor.Data(),FillColor.Data(),OutlineWidthScale*Size,Shape.Data(),Size);
+        for( TString Option:AdditionalNodeOptions ) Options.Append(Form(", %s",Option.Data()));
+        return Form("\\node[%s, draw] at (axis cs: %f,%f){};",Options.Data(),x,y);
+    }
+}; // Marker
+
+struct ErrorBar{
+    double Width;
+    TString Color;
+
+    ErrorBar(){
+        Width = 0.3; // mm
+        Color = "black";
+    }
+    virtual ~ErrorBar(){}
+}; // ErrorBar
+
+class Graph : public TGraphAsymmErrors{
+private:
+
+public:
+    Marker MarkerStyle;
+    ErrorBar ErrorBarStyle;
+    bool DrawXError, DrawYError;
+
+    Graph(){
+        DrawXError = true;
+        DrawYError = true;
+    }    
+    TString MarkerNode(int iPoint){
+        return MarkerStyle.Node(this->GetPointX(iPoint),this->GetPointY(iPoint));
+    }
+}; // Graph
+
 class PgfCanvas{
 private:
     int ActivePadX, ActivePadY;
@@ -20,7 +70,7 @@ public:
     int NumDivisionsX, NumDivisionsY;
     double Width, Height; // mm
     vector<Axis> XAxes, YAxes;
-    vector<TGraphAsymmErrors> Graphs;
+    vector<Graph> Graphs;
 
     PgfCanvas(int NX = 1, int NY = 1):NumDivisionsX(NX),NumDivisionsY(NY){
         Width = 83/(double)NX;
@@ -43,7 +93,7 @@ public:
     Axis& ActiveXAxis(){ return XAxes[ActivePadX]; }
     Axis& ActiveYAxis(){ return YAxes[ActivePadY]; }
 
-    void AddGraph(TGraphAsymmErrors gr){
+    void AddGraph(Graph gr){
         Graphs.push_back(gr);
     }
 
@@ -160,14 +210,17 @@ public:
 
 
 
-                //for( int iGraph=0; iGraph<Canvas.Graphs.size(); iGraph++ ){
-                for( TGraphAsymmErrors gr:Canvas.Graphs ){
-                    AddPictureLine("\\addplot[scatter, only marks, error bars/.cd, error mark = none, error bar style = {line width=0.4mm,solid}, y dir = both, y explicit, x dir = both, x explicit]");
+                for( Graph gr:Canvas.Graphs ){
+                    AddPictureLine(Form("\\addplot[scatter, only marks, forget plot, no markers, error bars/.cd, error mark = none, error bar style = {line width=%fmm,solid}, x dir = %s, x explicit, y dir = %s, y explicit]",gr.ErrorBarStyle.Width,gr.DrawXError?"both":"none",gr.DrawYError?"both":"none"));
                     AddPictureLine("\t table[x index = 0, x error minus index = 1, x error plus index = 2, y index = 3, y error minus index = 4, y error plus index = 5]{");
                     for( int iPoint=0; iPoint<gr.GetN(); iPoint++ ){
                         AddPictureLine(Form("\t\t%f %f %f %f %f %f",gr.GetPointX(iPoint),gr.GetErrorXlow(iPoint),gr.GetErrorXhigh(iPoint), gr.GetPointY(iPoint),gr.GetErrorYlow(iPoint),gr.GetErrorYhigh(iPoint)));
                     }
                     AddPictureLine("\t };");
+
+                    for( int iPoint=0; iPoint<gr.GetN(); iPoint++ ){
+                        AddPictureLine(gr.MarkerNode(iPoint));
+                    }
                 }
 
 
@@ -196,7 +249,7 @@ void Plotter(TString OutputFileCommitHash = "test"){
     PgfCanvas MyCanvas;
     MyCanvas.ActiveXAxis().Title = "x";
     MyCanvas.ActiveYAxis().Title = "y";
-    TGraphAsymmErrors gr;
+    Graph gr;
     for( int i=0 ;i<10; i++ ){
         TRandom3 ran(0);
         double min = (double)i/10., max = (double)(i+1)/10.;
