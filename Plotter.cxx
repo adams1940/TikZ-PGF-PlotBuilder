@@ -52,10 +52,18 @@ public:
     Marker MarkerStyle;
     ErrorBar ErrorBarStyle;
     bool DrawXError, DrawYError;
+    bool DrawLines;
+    bool OnlyDrawLines;
+    double LineWidth;
+    TString LineColor;
 
     Graph(){
         DrawXError = true;
         DrawYError = true;
+        DrawLines = false;
+        OnlyDrawLines = false;
+        LineWidth = 0.2; // mm
+        LineColor = "blue";
     }    
     TString MarkerNode(int iPoint){
         return MarkerStyle.Node(this->GetPointX(iPoint),this->GetPointY(iPoint));
@@ -211,6 +219,12 @@ public:
 
 
                 for( Graph gr:Canvas.Graphs ){
+                    if( gr.DrawLines ){
+                        for( int iPoint=0; iPoint<gr.GetN()-1; iPoint++ ){
+                            AddPictureLine(Form("\\draw[line width = %fmm, %s](%f,%f)--(%f,%f);",gr.LineWidth,gr.LineColor.Data(),gr.GetPointX(iPoint),gr.GetPointY(iPoint),gr.GetPointX(iPoint+1),gr.GetPointY(iPoint+1)));
+                        }
+                    }
+                    if( gr.OnlyDrawLines ) continue;
                     AddPictureLine(Form("\\addplot[scatter, only marks, forget plot, no markers, error bars/.cd, error mark = none, error bar style = {line width=%fmm,solid}, x dir = %s, x explicit, y dir = %s, y explicit]",gr.ErrorBarStyle.Width,gr.DrawXError?"both":"none",gr.DrawYError?"both":"none"));
                     AddPictureLine("\t table[x index = 0, x error minus index = 1, x error plus index = 2, y index = 3, y error minus index = 4, y error plus index = 5]{");
                     for( int iPoint=0; iPoint<gr.GetN(); iPoint++ ){
@@ -221,6 +235,8 @@ public:
                     for( int iPoint=0; iPoint<gr.GetN(); iPoint++ ){
                         AddPictureLine(gr.MarkerNode(iPoint));
                     }
+
+
                 }
 
 
@@ -256,6 +272,9 @@ void Plotter(TString OutputFileCommitHash = "test"){
         gr.SetPoint(i,ran.Uniform(min,max),ran.Uniform(min,max));
         gr.SetPointError(i,ran.Uniform(0,0.05),ran.Uniform(0,0.05),ran.Uniform(0,0.05),ran.Uniform(0,0.05));
     }
+    gr.DrawLines=true;
+    gr.LineWidth = 0.2;
+    gr.LineColor = "blue";
     MyCanvas.AddGraph(gr);
 
     MyTexFile.AddCanvas(MyCanvas);
