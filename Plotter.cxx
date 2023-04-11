@@ -80,6 +80,7 @@ public:
     double Width, Height; // mm
     vector<Axis> XAxes, YAxes;
     vector<Graph> Graphs[10][10]; // Ideally would be [NumDivisionsX][NumDivisionsY]
+    vector<TString> AdditionalNodes[10][10]; // Ideally would be [NumDivisionsX][NumDivisionsY]
     vector<vector<bool>> DrawZeroLinesVector;
     vector<vector<TString>> Texts;
     vector<vector<pair<double,double>>> TextPositions;
@@ -146,6 +147,10 @@ public:
     void AddText(TString Text, double x, double y){
       Texts[ActivePadX][ActivePadY] = Text;
       TextPositions[ActivePadX][ActivePadY] = pair<double,double>(x,y);
+    }
+
+    void AddNode(TString Text){
+      AdditionalNodes[ActivePadX][ActivePadY].push_back(Text);
     }
 
 }; // PgfCanvas
@@ -290,6 +295,8 @@ public:
 
                 if( Canvas.Texts[ColumnX][ColumnY]!="" ) AddPictureLine(Form("\\node [anchor=center, align=center] at (axis cs: %f,%f){%s};",Canvas.TextPositions[ColumnX][ColumnY].first,Canvas.TextPositions[ColumnX][ColumnY].second,Canvas.Texts[ColumnX][ColumnY].Data()));
 
+                for( TString Node:Canvas.AdditionalNodes[ColumnX][ColumnY] ) AddPictureLine(Node.Data());
+
                 AddPictureLine("\\end{axis}");
             } // ColumnX
         } // ColumnY
@@ -353,6 +360,17 @@ void DrawInfoText(PgfCanvas &can, TString Energy, TString PtRapidityCentrality, 
   can.AddText(Form("STAR Au+Au\\\\$\\sNN=%s$~GeV\\\\%s\\\\$\\alpha_\\Lambda=0.732$",Energy.Data(),PtRapidityCentrality.Data()),x,y);
 }
 
+void DrawLambdaPointLegend(PgfCanvas &can, double x, double y){
+  can.AddNode(Form("\\node [draw, shape=rectangle, minimum width=1cm, minimum height=1cm, anchor=center,fill={rgb:black,1;white,3}] at (%f,%f) {};",x,y));
+  can.AddNode(Form("\\node [draw, shape=rectangle, minimum width=1cm, minimum height=1cm, anchor=center,fill={rgb:black,1;white,3}] at (%f,%f) {};",x,y));
+  can.AddNode(Form("\\node[anchor=center,align = center, xshift=-2.5mm, yshift=2.5mm] at (axis cs: %f,%f){$\\Lambda$};",x,y));
+  can.AddNode(Form("\\node[anchor=center,align = center, xshift= 2.5mm, yshift=2.5mm] at (axis cs: %f,%f){$\\bar{\\Lambda}$};",x,y));
+  can.AddNode(Form("\\node[color=black, fill=LambdaFillColor, line width=0.150000mm, star, minimum size=3.000000mm, inner sep=0pt, star point ratio = \\PerfectStarRadiusRatio, xshift=-2.5mm, yshift=-2.5mm, draw] at (axis cs: %f,%f){};",x,y));
+  can.AddNode(Form("\\node[color=black, fill=LamBarFillColor, line width=0.150000mm, star, minimum size=3.000000mm, inner sep=0pt, star point ratio = \\PerfectStarRadiusRatio, xshift= 2.5mm, yshift=-2.5mm, draw] at (axis cs: %f,%f){};",x,y));
+	can.AddNode(Form("\\node[color=LamBarInnerFillColor, fill=LamBarInnerFillColor, line width=0.000000mm, star, minimum size=0.750000mm, inner sep=0pt, star point ratio = \\PerfectStarRadiusRatio, xshift= 2.5mm, yshift=-2.5mm, draw] at (axis cs: %f,%f){};",x,y));
+}
+
+
 void Plotter(TString OutputFileCommitHash = "test"){
     TString LambdaCommitHash19GeVCentrality = "84380533efb06885108ea47a091187d38f1989fe";
     TString LamBarCommitHash19GeVCentrality = "a62202a143af0c296e98e4e8d54cee0f0d583150";
@@ -386,6 +404,7 @@ void Plotter(TString OutputFileCommitHash = "test"){
     MyCanvas.cd(0,1);
     DrawLambdaPoints(LambdaStatGraph27GeVCentrality,MyCanvas);
     DrawLamBarPoints(LamBarStatGraph27GeVCentrality,MyCanvas);
+    DrawLambdaPointLegend(MyCanvas,15,1.5);
     DrawInfoText(MyCanvas,"27","$p_{\\mathrm{T}}>0.5$~GeV/$c$, $|y|<1$",22,2.8);
 
     MyTexFile.AddCanvas(MyCanvas);
