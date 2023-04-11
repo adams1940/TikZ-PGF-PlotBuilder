@@ -21,7 +21,7 @@ struct Marker{
     Marker(){
         OutlineColor="black";
         FillColor = "blue";
-        Size = 2; // mm
+        Size = 3; // mm
         OutlineWidthScale = 0.05;
         Shape = "circle";
     }
@@ -29,6 +29,7 @@ struct Marker{
 
     TString Node(double x, double y){
         TString Options = Form("color=%s, fill=%s, line width=%fmm, %s, minimum size=%fmm, inner sep=0pt",OutlineColor.Data(),FillColor.Data(),OutlineWidthScale*Size,Shape.Data(),Size);
+        if( Shape=="star" ) Options.Append(", star point ratio = \\PerfectStarRadiusRatio");
         for( TString Option:AdditionalNodeOptions ) Options.Append(Form(", %s",Option.Data()));
         return Form("\\node[%s, draw] at (axis cs: %f,%f){};",Options.Data(),x,y);
     }
@@ -262,11 +263,32 @@ public:
     }
 }; // TexFile
 
+void DrawLambdaPoints(Graph &gr, PgfCanvas &can){
+    gr.MarkerStyle.Shape = "star";
+    gr.MarkerStyle.FillColor = "LambdaFillColor";
+    can.AddGraph(gr);
+}
+void DrawLamBarPoints(Graph &gr, PgfCanvas &can){
+    gr.MarkerStyle.Shape = "star";
+    gr.MarkerStyle.FillColor = "LamBarFillColor";
+
+    Graph grInner(gr);
+    for( int Point=0; Point<grInner.GetN(); Point++ ){
+      grInner.SetPointError(Point,0,0,0,0);
+    }
+    grInner.MarkerStyle.Shape = "star";
+    grInner.MarkerStyle.Size = gr.MarkerStyle.Size*0.25;
+    grInner.MarkerStyle.OutlineWidthScale = 0;
+    grInner.MarkerStyle.OutlineColor = "LamBarInnerFillColor";
+    grInner.MarkerStyle.FillColor = "LamBarInnerFillColor";
+    can.AddGraph(gr);
+    can.AddGraph(grInner);
+}
+
 void Plotter(TString OutputFileCommitHash = "test"){
     gSystem->Exec(Form("mkdir -p Output/%s",OutputFileCommitHash.Data()));
     TexFile MyTexFile(OutputFileCommitHash);
     PgfCanvas MyCanvas(1,2);
-    MyCanvas.cd(0,0);
     MyCanvas.ActiveXAxis().Title = "x";
     MyCanvas.ActiveYAxis().Title = "y";
     Graph gr1;
@@ -276,8 +298,8 @@ void Plotter(TString OutputFileCommitHash = "test"){
         gr1.SetPoint(i,ran.Uniform(min,max),ran.Uniform(min,max));
         gr1.SetPointError(i,ran.Uniform(0,0.05),ran.Uniform(0,0.05),ran.Uniform(0,0.05),ran.Uniform(0,0.05));
     }
-    MyCanvas.AddGraph(gr1);
-    MyCanvas.cd(0,1);
+    MyCanvas.cd(0,0);
+    DrawLambdaPoints(gr1,MyCanvas);
     Graph gr2;
     for( int i=0 ;i<10; i++ ){
         TRandom3 ran(0);
@@ -285,7 +307,7 @@ void Plotter(TString OutputFileCommitHash = "test"){
         gr2.SetPoint(i,ran.Uniform(min,max),ran.Uniform(min,max));
         gr2.SetPointError(i,ran.Uniform(0,0.05),ran.Uniform(0,0.05),ran.Uniform(0,0.05),ran.Uniform(0,0.05));
     }
-    MyCanvas.AddGraph(gr2);
+    DrawLamBarPoints(gr2,MyCanvas);
 
     MyTexFile.AddCanvas(MyCanvas);
 }
