@@ -106,6 +106,25 @@ public:
         Graphs[ActivePadX][ActivePadY].push_back(gr);
     }
 
+    void SetXYTitles(TString XTitle, TString YTitle){
+      for( Axis &axis:XAxes ) axis.Title = XTitle;
+      for( Axis &axis:YAxes ) axis.Title = YTitle;
+    }
+
+    void SetXRange(double Min, double Max){
+      for( Axis &axis:XAxes ){
+        axis.Min = Min;
+        axis.Max = Max;
+      }
+    }
+
+    void SetYRange(double Min, double Max){
+      for( Axis &axis:YAxes ){
+        axis.Min = Min;
+        axis.Max = Max;
+      }
+    }
+
 }; // PgfCanvas
 
 class TexFile{
@@ -321,22 +340,13 @@ void Plotter(TString OutputFileCommitHash = "test"){
     gSystem->Exec(Form("mkdir -p Output/%s",OutputFileCommitHash.Data()));
     TexFile MyTexFile(OutputFileCommitHash);
     PgfCanvas MyCanvas(1,2);
+    MyCanvas.SetXYTitles("x","y");
+    MyCanvas.SetXRange(0,80);
+    MyCanvas.SetYRange(0,5);
     MyCanvas.cd(0,0);
-    MyCanvas.ActiveXAxis().Min = 0;
-    MyCanvas.ActiveXAxis().Max = 80;
-    MyCanvas.ActiveYAxis().Min = 0;
-    MyCanvas.ActiveYAxis().Max = 5;
-    MyCanvas.ActiveXAxis().Title = "x";
-    MyCanvas.ActiveYAxis().Title = "y";
     DrawLambdaPoints(LambdaStatGraph19GeVCentrality,MyCanvas);
     DrawLamBarPoints(LamBarStatGraph19GeVCentrality,MyCanvas);
     MyCanvas.cd(0,1);
-    MyCanvas.ActiveXAxis().Min = 0;
-    MyCanvas.ActiveXAxis().Max = 80;
-    MyCanvas.ActiveYAxis().Min = 0;
-    MyCanvas.ActiveYAxis().Max = 5;
-    MyCanvas.ActiveXAxis().Title = "x";
-    MyCanvas.ActiveYAxis().Title = "y";
     DrawLambdaPoints(LambdaStatGraph27GeVCentrality,MyCanvas);
     DrawLamBarPoints(LamBarStatGraph27GeVCentrality,MyCanvas);
 
