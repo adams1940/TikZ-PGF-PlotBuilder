@@ -78,7 +78,7 @@ public:
     int NumDivisionsX, NumDivisionsY;
     double Width, Height; // mm
     vector<Axis> XAxes, YAxes;
-    vector<Graph> Graphs;
+    vector<Graph> Graphs[10][10]; // Ideally would be [NumDivisionsX][NumDivisionsY]
 
     PgfCanvas(int NX = 1, int NY = 1):NumDivisionsX(NX),NumDivisionsY(NY){
         Width = 83/(double)NX;
@@ -102,7 +102,7 @@ public:
     Axis& ActiveYAxis(){ return YAxes[ActivePadY]; }
 
     void AddGraph(Graph gr){
-        Graphs.push_back(gr);
+        Graphs[ActivePadX][ActivePadY].push_back(gr);
     }
 
 }; // PgfCanvas
@@ -117,7 +117,7 @@ public:
 
     TexFile(TString Name):FileName(Name){
         File.open(Form("Output/%s/%s.tex",Name.Data(),Name.Data()));
-        File<<"\\documentclass[10pt]{article}\n";
+        File<<"\\documentclass[class=article,10pt,border=0pt]{standalone}\n";
         File<<"\\usepackage[utf8]{inputenc}\n";
         File<<"\\usepackage{bm}\n";
         File<<"\\usepackage{pgf, pgfplots, pgfplotstable}\n";
@@ -132,14 +132,17 @@ public:
         File<<"\\usetikzlibrary{external}\n";
         File<<"\\tikzexternalize\n";
         File<<"\\usepackage{calc}\n";
+        File<<"\\definecolor{LambdaFillColor}{RGB}{51,102,255}\n";
+        File<<"\\definecolor{LamBarFillColor}{RGB}{204,16,0}\n";
+        File<<"\\definecolor{LambdaInnerFillColor}{RGB}{51,102,255}\n";
+        File<<"\\definecolor{LamBarInnerFillColor}{RGB}{255,255,255}\n";
+        File<<"\\newcommand{\\PerfectStarRadiusRatio}{2.618034}";
         File<<"\n";
         File<<"\\begin{document}\n";
-        File<<"\\begin{center}\n";
         File<<"\n";
     } // TexFile 
     
     virtual ~TexFile(){
-        File<<"\\end{center}\n";
         File<<"\\end{document}";
         File.close();
         gSystem->Exec(Form("cd Output/%s; pdflatex -shell-escape %s; cd ../../",FileName.Data(),FileName.Data()));
@@ -218,7 +221,7 @@ public:
 
 
 
-                for( Graph gr:Canvas.Graphs ){
+                for( Graph gr:Canvas.Graphs[ColumnX][ColumnY] ){
                     if( gr.DrawLines ){
                         for( int iPoint=0; iPoint<gr.GetN()-1; iPoint++ ){
                             AddPictureLine(Form("\\draw[line width = %fmm, %s](%f,%f)--(%f,%f);",gr.LineWidth,gr.LineColor.Data(),gr.GetPointX(iPoint),gr.GetPointY(iPoint),gr.GetPointX(iPoint+1),gr.GetPointY(iPoint+1)));
@@ -262,20 +265,27 @@ public:
 void Plotter(TString OutputFileCommitHash = "test"){
     gSystem->Exec(Form("mkdir -p Output/%s",OutputFileCommitHash.Data()));
     TexFile MyTexFile(OutputFileCommitHash);
-    PgfCanvas MyCanvas;
+    PgfCanvas MyCanvas(1,2);
+    MyCanvas.cd(0,0);
     MyCanvas.ActiveXAxis().Title = "x";
     MyCanvas.ActiveYAxis().Title = "y";
-    Graph gr;
+    Graph gr1;
     for( int i=0 ;i<10; i++ ){
         TRandom3 ran(0);
         double min = (double)i/10., max = (double)(i+1)/10.;
-        gr.SetPoint(i,ran.Uniform(min,max),ran.Uniform(min,max));
-        gr.SetPointError(i,ran.Uniform(0,0.05),ran.Uniform(0,0.05),ran.Uniform(0,0.05),ran.Uniform(0,0.05));
+        gr1.SetPoint(i,ran.Uniform(min,max),ran.Uniform(min,max));
+        gr1.SetPointError(i,ran.Uniform(0,0.05),ran.Uniform(0,0.05),ran.Uniform(0,0.05),ran.Uniform(0,0.05));
     }
-    gr.DrawLines=true;
-    gr.LineWidth = 0.2;
-    gr.LineColor = "blue";
-    MyCanvas.AddGraph(gr);
+    MyCanvas.AddGraph(gr1);
+    MyCanvas.cd(0,1);
+    Graph gr2;
+    for( int i=0 ;i<10; i++ ){
+        TRandom3 ran(0);
+        double min = (double)i/10., max = (double)(i+1)/10.;
+        gr2.SetPoint(i,ran.Uniform(min,max),ran.Uniform(min,max));
+        gr2.SetPointError(i,ran.Uniform(0,0.05),ran.Uniform(0,0.05),ran.Uniform(0,0.05),ran.Uniform(0,0.05));
+    }
+    MyCanvas.AddGraph(gr2);
 
     MyTexFile.AddCanvas(MyCanvas);
 }
