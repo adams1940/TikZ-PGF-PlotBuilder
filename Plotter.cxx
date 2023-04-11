@@ -284,30 +284,61 @@ void DrawLamBarPoints(Graph &gr, PgfCanvas &can){
     can.AddGraph(gr);
     can.AddGraph(grInner);
 }
+Graph ConvertTh1ToGraph(const TH1 &Hist){
+    int NumBins = Hist.GetNbinsX();
+    double BinWidth = Hist.GetBinWidth(0);
+    double XErrorOverXRange = BinWidth/(Hist.GetBinLowEdge(NumBins+1)-Hist.GetBinLowEdge(1));
+    int PointCounter = 0;
+    Graph gr;
+    gr.SetName(Form("%s_gr",Hist.GetName()));
+    for( int Bin=1; Bin<=NumBins; Bin++ ){
+        double Val = Hist.GetBinContent(Bin), Err = Hist.GetBinError(Bin);
+        if( Val==0 && Err==0 ) continue;
+        gr.SetPoint(PointCounter,Hist.GetBinCenter(Bin),Val);
+        gr.SetPointError(PointCounter,Hist.GetBinWidth(Bin)/2.,Hist.GetBinWidth(Bin)/2.,Err,Err);
+        PointCounter++;
+    } // Bin
+    return gr;
+}
 
 void Plotter(TString OutputFileCommitHash = "test"){
+    TString LambdaCommitHash19GeVCentrality = "84380533efb06885108ea47a091187d38f1989fe";
+    TString LamBarCommitHash19GeVCentrality = "a62202a143af0c296e98e4e8d54cee0f0d583150";
+    TString LambdaCommitHash27GeVCentrality = "439a5050cd21fb44dec792bd671aca260296ee8e";
+    TString LamBarCommitHash27GeVCentrality = "f522bd60f00be59fcf717b79e0e67f2c6b51618d";
+    // TString LambdaCommitHash19GeV = "044666513c03b24ef87a6361ff6394455d9acde8";
+    // TString LamBarCommitHash19GeV = "5cae15284111395d6a12676b1db189ad894d4e4c";
+    // TString LambdaCommitHash27GeV = "cc4f4f6e0dbd646f7013dd693694d11c9c326238";
+    // TString LamBarCommitHash27GeV = "079840ff12164ccccfc39ab4bb72ef3fbf2f8f88";
+
+    TFile LambdaFile19GeVCentrality(Form("/home/joseph/Documents/Coding/OSUResearch/LambdaPolarizationAnalyses/Local/19GeV/Output/Histograms/%s/%s.PolarizationHistograms.root",LambdaCommitHash19GeVCentrality.Data(),LambdaCommitHash19GeVCentrality.Data())); TFile LamBarFile19GeVCentrality(Form("/home/joseph/Documents/Coding/OSUResearch/LambdaPolarizationAnalyses/Local/19GeV/Output/Histograms/%s/%s.PolarizationHistograms.root",LamBarCommitHash19GeVCentrality.Data(),LamBarCommitHash19GeVCentrality.Data()));
+    Graph LambdaStatGraph19GeVCentrality = ConvertTh1ToGraph( *((TH1D*)LambdaFile19GeVCentrality.Get("Centrality_Polarization_StandardMethod")) );
+    Graph LamBarStatGraph19GeVCentrality = ConvertTh1ToGraph( *((TH1D*)LamBarFile19GeVCentrality.Get("Centrality_Polarization_StandardMethod")) );
+    TFile LambdaFile27GeVCentrality(Form("/home/joseph/Documents/Coding/OSUResearch/LambdaPolarizationAnalyses/Local/27GeV/Output/Histograms/%s/%s.PolarizationHistograms.root",LambdaCommitHash27GeVCentrality.Data(),LambdaCommitHash27GeVCentrality.Data())); TFile LamBarFile27GeVCentrality(Form("/home/joseph/Documents/Coding/OSUResearch/LambdaPolarizationAnalyses/Local/27GeV/Output/Histograms/%s/%s.PolarizationHistograms.root",LamBarCommitHash27GeVCentrality.Data(),LamBarCommitHash27GeVCentrality.Data()));
+    Graph LambdaStatGraph27GeVCentrality = ConvertTh1ToGraph( *((TH1D*)LambdaFile27GeVCentrality.Get("Centrality_Polarization_StandardMethod")) );
+    Graph LamBarStatGraph27GeVCentrality = ConvertTh1ToGraph( *((TH1D*)LamBarFile27GeVCentrality.Get("Centrality_Polarization_StandardMethod")) );
+
     gSystem->Exec(Form("mkdir -p Output/%s",OutputFileCommitHash.Data()));
     TexFile MyTexFile(OutputFileCommitHash);
     PgfCanvas MyCanvas(1,2);
+    MyCanvas.cd(0,0);
+    MyCanvas.ActiveXAxis().Min = 0;
+    MyCanvas.ActiveXAxis().Max = 80;
+    MyCanvas.ActiveYAxis().Min = 0;
+    MyCanvas.ActiveYAxis().Max = 5;
     MyCanvas.ActiveXAxis().Title = "x";
     MyCanvas.ActiveYAxis().Title = "y";
-    Graph gr1;
-    for( int i=0 ;i<10; i++ ){
-        TRandom3 ran(0);
-        double min = (double)i/10., max = (double)(i+1)/10.;
-        gr1.SetPoint(i,ran.Uniform(min,max),ran.Uniform(min,max));
-        gr1.SetPointError(i,ran.Uniform(0,0.05),ran.Uniform(0,0.05),ran.Uniform(0,0.05),ran.Uniform(0,0.05));
-    }
-    MyCanvas.cd(0,0);
-    DrawLambdaPoints(gr1,MyCanvas);
-    Graph gr2;
-    for( int i=0 ;i<10; i++ ){
-        TRandom3 ran(0);
-        double min = (double)i/10., max = (double)(i+1)/10.;
-        gr2.SetPoint(i,ran.Uniform(min,max),ran.Uniform(min,max));
-        gr2.SetPointError(i,ran.Uniform(0,0.05),ran.Uniform(0,0.05),ran.Uniform(0,0.05),ran.Uniform(0,0.05));
-    }
-    DrawLamBarPoints(gr2,MyCanvas);
+    DrawLambdaPoints(LambdaStatGraph19GeVCentrality,MyCanvas);
+    DrawLamBarPoints(LamBarStatGraph19GeVCentrality,MyCanvas);
+    MyCanvas.cd(0,1);
+    MyCanvas.ActiveXAxis().Min = 0;
+    MyCanvas.ActiveXAxis().Max = 80;
+    MyCanvas.ActiveYAxis().Min = 0;
+    MyCanvas.ActiveYAxis().Max = 5;
+    MyCanvas.ActiveXAxis().Title = "x";
+    MyCanvas.ActiveYAxis().Title = "y";
+    DrawLambdaPoints(LambdaStatGraph27GeVCentrality,MyCanvas);
+    DrawLamBarPoints(LamBarStatGraph27GeVCentrality,MyCanvas);
 
     MyTexFile.AddCanvas(MyCanvas);
 }
