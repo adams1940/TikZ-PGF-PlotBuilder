@@ -81,6 +81,8 @@ public:
     vector<Axis> XAxes, YAxes;
     vector<Graph> Graphs[10][10]; // Ideally would be [NumDivisionsX][NumDivisionsY]
     vector<vector<bool>> DrawZeroLinesVector;
+    vector<vector<TString>> Texts;
+    vector<vector<pair<double,double>>> TextPositions;
 
     PgfCanvas(int NX = 1, int NY = 1):NumDivisionsX(NX),NumDivisionsY(NY){
         Width = 83/(double)NX;
@@ -88,6 +90,8 @@ public:
         XAxes.resize(NX);
         YAxes.resize(NY);
         for( int iX=0; iX<NX; iX++ ) DrawZeroLinesVector.push_back(vector<bool>(NY));
+        for( int iX=0; iX<NX; iX++ ) Texts.push_back(vector<TString>(NY));
+        for( int iX=0; iX<NX; iX++ ) TextPositions.push_back(vector<pair<double,double>>(NY));
         cd();
     }
     virtual ~PgfCanvas(){}
@@ -137,6 +141,11 @@ public:
 
     void DrawZeroLine(){
       DrawZeroLinesVector[ActivePadX][ActivePadY] = true;
+    }
+
+    void AddText(TString Text, double x, double y){
+      Texts[ActivePadX][ActivePadY] = Text;
+      TextPositions[ActivePadX][ActivePadY] = pair<double,double>(x,y);
     }
 
 }; // PgfCanvas
@@ -276,12 +285,9 @@ public:
                     for( int iPoint=0; iPoint<gr.GetN(); iPoint++ ){
                         AddPictureLine(gr.MarkerNode(iPoint));
                     }
-
-
                 }
 
-
-
+                if( Canvas.Texts[ColumnX][ColumnY]!="" ) AddPictureLine(Form("\\node [anchor=center, align=center] at (axis cs: %f,%f){%s};",Canvas.TextPositions[ColumnX][ColumnY].first,Canvas.TextPositions[ColumnX][ColumnY].second,Canvas.Texts[ColumnX][ColumnY].Data()));
 
                 AddPictureLine("\\end{axis}");
             } // ColumnX
@@ -369,6 +375,7 @@ void Plotter(TString OutputFileCommitHash = "test"){
     MyCanvas.SetYRange(-0.65,3.65);
     MyCanvas.DrawZeroLines();
     MyCanvas.cd(0,0);
+    MyCanvas.AddText("hi",0.1,0.1);
     DrawLambdaPoints(LambdaStatGraph19GeVCentrality,MyCanvas);
     DrawLamBarPoints(LamBarStatGraph19GeVCentrality,MyCanvas);
     MyCanvas.cd(0,1);
