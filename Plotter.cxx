@@ -4,7 +4,7 @@ struct Axis{
     vector<double> CustomMajorTicks, CustomMinorTicks;
     TString Title, TitleSize;
     Axis(){
-        NumMinorTicks = 1;
+        NumMinorTicks = 4;
         Min = 0;
         Max = 1;
         TitleSize = "\\large";
@@ -137,7 +137,7 @@ public:
 
     TexFile(TString Name):FileName(Name){
         File.open(Form("Output/%s/%s.tex",Name.Data(),Name.Data()));
-        File<<"\\documentclass[class=article,10pt,border=0pt]{standalone}\n";
+        File<<"\\documentclass[class=article,10pt,border=1pt]{standalone}\n";
         File<<"\\usepackage[utf8]{inputenc}\n";
         File<<"\\usepackage{bm}\n";
         File<<"\\usepackage{pgf, pgfplots, pgfplotstable}\n";
@@ -157,6 +157,8 @@ public:
         File<<"\\definecolor{LambdaInnerFillColor}{RGB}{51,102,255}\n";
         File<<"\\definecolor{LamBarInnerFillColor}{RGB}{255,255,255}\n";
         File<<"\\newcommand{\\PerfectStarRadiusRatio}{2.618034}";
+        File<<"\\newcommand{\\XLabelOffsetY}{-0.07}";
+        File<<"\\newcommand{\\YLabelOffsetX}{-0.161}";
         File<<"\n";
         File<<"\\begin{document}\n";
         File<<"\n";
@@ -184,6 +186,8 @@ public:
                 AddAxisOption(Form("xmax=%f",XAxis.Max));
                 AddAxisOption(Form("ymin=%f",YAxis.Min));
                 AddAxisOption(Form("ymax=%f",YAxis.Max));
+                AddAxisOption(Form("x label style={at={(1,\\XLabelOffsetY)},anchor=north east}"));
+                AddAxisOption(Form("y label style={at={(\\YLabelOffsetX,1)},anchor=north east}"));
 
                 AddAxisOption(Form("name=%s",CanvasName(ColumnX,ColumnY).Data()));
                 if( !(ColumnX==0 && ColumnY==0) ){
@@ -337,12 +341,14 @@ void Plotter(TString OutputFileCommitHash = "test"){
     Graph LambdaStatGraph27GeVCentrality = ConvertTh1ToGraph( *((TH1D*)LambdaFile27GeVCentrality.Get("Centrality_Polarization_StandardMethod")) );
     Graph LamBarStatGraph27GeVCentrality = ConvertTh1ToGraph( *((TH1D*)LamBarFile27GeVCentrality.Get("Centrality_Polarization_StandardMethod")) );
 
+    TString PolarizationTitle = "P_{H} (\\%)";
+
     gSystem->Exec(Form("mkdir -p Output/%s",OutputFileCommitHash.Data()));
     TexFile MyTexFile(OutputFileCommitHash);
     PgfCanvas MyCanvas(1,2);
-    MyCanvas.SetXYTitles("x","y");
-    MyCanvas.SetXRange(0,80);
-    MyCanvas.SetYRange(0,5);
+    MyCanvas.SetXYTitles("\\mathrm{Centrality} (\\%)",PolarizationTitle);
+    MyCanvas.SetXRange(-5,85);
+    MyCanvas.SetYRange(-0.65,3.65);
     MyCanvas.cd(0,0);
     DrawLambdaPoints(LambdaStatGraph19GeVCentrality,MyCanvas);
     DrawLamBarPoints(LamBarStatGraph19GeVCentrality,MyCanvas);
