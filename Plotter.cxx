@@ -80,12 +80,14 @@ public:
     double Width, Height; // mm
     vector<Axis> XAxes, YAxes;
     vector<Graph> Graphs[10][10]; // Ideally would be [NumDivisionsX][NumDivisionsY]
+    vector<vector<bool>> DrawZeroLinesVector;
 
     PgfCanvas(int NX = 1, int NY = 1):NumDivisionsX(NX),NumDivisionsY(NY){
         Width = 83/(double)NX;
         Height = Width;
         XAxes.resize(NX);
         YAxes.resize(NY);
+        for( int iX=0; iX<NX; iX++ ) DrawZeroLinesVector.push_back(vector<bool>(NY));
         cd();
     }
     virtual ~PgfCanvas(){}
@@ -123,6 +125,18 @@ public:
         axis.Min = Min;
         axis.Max = Max;
       }
+    }
+
+    void DrawZeroLines(){
+      for( int iX=0; iX<NumDivisionsX; iX++ ){
+        for( int iY=0; iY<NumDivisionsY; iY++ ){
+          DrawZeroLinesVector[iX][iY] = true;
+        }
+      }
+    }
+
+    void DrawZeroLine(){
+      DrawZeroLinesVector[ActivePadX][ActivePadY] = true;
     }
 
 }; // PgfCanvas
@@ -243,7 +257,7 @@ public:
 
                 AddPictureLine("]");
 
-
+                if( Canvas.DrawZeroLinesVector[ColumnX][ColumnY] ) AddPictureLine(Form("\\addplot[color=gray, forget plot, /tikz/densely dotted, ] coordinates{(%f,0)(%f,0)};",Canvas.XAxes[ColumnX].Min,Canvas.XAxes[ColumnX].Max));
 
                 for( Graph gr:Canvas.Graphs[ColumnX][ColumnY] ){
                     if( gr.DrawLines ){
@@ -287,11 +301,14 @@ public:
 }; // TexFile
 
 void DrawLambdaPoints(Graph &gr, PgfCanvas &can){
+    if( gr.GetN()>0 ) gr.MovePoints(-gr.GetErrorX(0)/10.,0);
     gr.MarkerStyle.Shape = "star";
     gr.MarkerStyle.FillColor = "LambdaFillColor";
     can.AddGraph(gr);
 }
+
 void DrawLamBarPoints(Graph &gr, PgfCanvas &can){
+    if( gr.GetN()>0 ) gr.MovePoints(gr.GetErrorX(0)/10.,0);
     gr.MarkerStyle.Shape = "star";
     gr.MarkerStyle.FillColor = "LamBarFillColor";
 
@@ -307,6 +324,7 @@ void DrawLamBarPoints(Graph &gr, PgfCanvas &can){
     can.AddGraph(gr);
     can.AddGraph(grInner);
 }
+
 Graph ConvertTh1ToGraph(const TH1 &Hist){
     int NumBins = Hist.GetNbinsX();
     double BinWidth = Hist.GetBinWidth(0);
@@ -341,14 +359,15 @@ void Plotter(TString OutputFileCommitHash = "test"){
     Graph LambdaStatGraph27GeVCentrality = ConvertTh1ToGraph( *((TH1D*)LambdaFile27GeVCentrality.Get("Centrality_Polarization_StandardMethod")) );
     Graph LamBarStatGraph27GeVCentrality = ConvertTh1ToGraph( *((TH1D*)LamBarFile27GeVCentrality.Get("Centrality_Polarization_StandardMethod")) );
 
-    TString PolarizationTitle = "P_{H} (\\%)";
+    TString PolarizationTitle = "P_{H}\\:(\\%)";
 
     gSystem->Exec(Form("mkdir -p Output/%s",OutputFileCommitHash.Data()));
     TexFile MyTexFile(OutputFileCommitHash);
     PgfCanvas MyCanvas(1,2);
-    MyCanvas.SetXYTitles("\\mathrm{Centrality} (\\%)",PolarizationTitle);
+    MyCanvas.SetXYTitles("\\mathrm{Centrality}\\:(\\%)",PolarizationTitle);
     MyCanvas.SetXRange(-5,85);
     MyCanvas.SetYRange(-0.65,3.65);
+    MyCanvas.DrawZeroLines();
     MyCanvas.cd(0,0);
     DrawLambdaPoints(LambdaStatGraph19GeVCentrality,MyCanvas);
     DrawLamBarPoints(LamBarStatGraph19GeVCentrality,MyCanvas);
