@@ -182,6 +182,7 @@ public:
         File<<"\\newcommand{\\PerfectStarRadiusRatio}{2.618034}";
         File<<"\\newcommand{\\XLabelOffsetY}{-0.07}";
         File<<"\\newcommand{\\YLabelOffsetX}{-0.161}";
+        File<<"\\newcommand{\\sNN}{\\sqrt{s_\\mathrm{NN}}}";
         File<<"\n";
         File<<"\\begin{document}\n";
         File<<"\n";
@@ -348,6 +349,10 @@ Graph ConvertTh1ToGraph(const TH1 &Hist){
     return gr;
 }
 
+void DrawInfoText(PgfCanvas &can, TString Energy, TString PtRapidityCentrality, double x, double y){
+  can.AddText(Form("STAR Au+Au\\\\$\\sNN=%s$~GeV\\\\%s\\\\$\\alpha_\\Lambda=0.732$",Energy.Data(),PtRapidityCentrality.Data()),x,y);
+}
+
 void Plotter(TString OutputFileCommitHash = "test"){
     TString LambdaCommitHash19GeVCentrality = "84380533efb06885108ea47a091187d38f1989fe";
     TString LamBarCommitHash19GeVCentrality = "a62202a143af0c296e98e4e8d54cee0f0d583150";
@@ -375,12 +380,13 @@ void Plotter(TString OutputFileCommitHash = "test"){
     MyCanvas.SetYRange(-0.65,3.65);
     MyCanvas.DrawZeroLines();
     MyCanvas.cd(0,0);
-    MyCanvas.AddText("hi",0.1,0.1);
     DrawLambdaPoints(LambdaStatGraph19GeVCentrality,MyCanvas);
     DrawLamBarPoints(LamBarStatGraph19GeVCentrality,MyCanvas);
+    DrawInfoText(MyCanvas,"19.6","$p_{\\mathrm{T}}>0.5$~GeV/$c$, $|y|<1$",22,2.8);
     MyCanvas.cd(0,1);
     DrawLambdaPoints(LambdaStatGraph27GeVCentrality,MyCanvas);
     DrawLamBarPoints(LamBarStatGraph27GeVCentrality,MyCanvas);
+    DrawInfoText(MyCanvas,"27","$p_{\\mathrm{T}}>0.5$~GeV/$c$, $|y|<1$",22,2.8);
 
     MyTexFile.AddCanvas(MyCanvas);
 }
