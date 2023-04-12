@@ -382,7 +382,7 @@ Graph ConvertTh1ToGraph(const TH1 &Hist){
 }
 
 void DrawInfoText(PgfCanvas &can, TString Energy, TString PtRapidityCentrality, double x, double y){
-  can.AddText(Form("STAR Au+Au\\\\$\\sNN=%s$~GeV\\\\%s\\\\$\\alpha_\\Lambda=0.732$",Energy.Data(),PtRapidityCentrality.Data()),x,y);
+  can.AddText(Form("STAR Au+Au, $\\sNN=%s$~GeV\\\\%s\\\\$\\alpha_\\Lambda=0.732$",Energy.Data(),PtRapidityCentrality.Data()),x,y);
 }
 
 void DrawLambdaPointLegend(PgfCanvas &can, double x, double y){
@@ -406,7 +406,7 @@ void Plotter(TString OutputFileCommitHash = "test"){
     TString LambdaCommitHash27GeV = "cc4f4f6e0dbd646f7013dd693694d11c9c326238";
     TString LamBarCommitHash27GeV = "079840ff12164ccccfc39ab4bb72ef3fbf2f8f88";
 
-    TString PolarizationTitle = "P_{H}\\:(\\%)";
+    TString PolarizationTitle = "P_{\\mathrm{H}}~(\\%)";
 
     TFile LambdaFile19GeVCentrality(Form("/home/joseph/Documents/Coding/OSUResearch/LambdaPolarizationAnalyses/Local/19GeV/Output/Histograms/%s/%s.PolarizationHistograms.root",LambdaCommitHash19GeVCentrality.Data(),LambdaCommitHash19GeVCentrality.Data()));
     TFile LamBarFile19GeVCentrality(Form("/home/joseph/Documents/Coding/OSUResearch/LambdaPolarizationAnalyses/Local/19GeV/Output/Histograms/%s/%s.PolarizationHistograms.root",LamBarCommitHash19GeVCentrality.Data(),LamBarCommitHash19GeVCentrality.Data()));
@@ -429,12 +429,24 @@ void Plotter(TString OutputFileCommitHash = "test"){
     Graph LamBarStatGraph19GeVPt = ConvertTh1ToGraph( *((TH1D*)LamBarFile19GeV.Get("Pt_Polarization_StandardMethod")) );
     Graph LambdaStatGraph27GeVPt = ConvertTh1ToGraph( *((TH1D*)LambdaFile27GeV.Get("Pt_Polarization_StandardMethod")) );
     Graph LamBarStatGraph27GeVPt = ConvertTh1ToGraph( *((TH1D*)LamBarFile27GeV.Get("Pt_Polarization_StandardMethod")) );
+    Graph LambdaSystGraph19GeVPt = ConvertTh1ToGraph( *((TH1D*)LambdaFile19GeV.Get("Pt_Polarization_SystematicUncertainty")) );
+    Graph LamBarSystGraph19GeVPt = ConvertTh1ToGraph( *((TH1D*)LamBarFile19GeV.Get("Pt_Polarization_SystematicUncertainty")) );
+    Graph LambdaSystGraph27GeVPt = ConvertTh1ToGraph( *((TH1D*)LambdaFile27GeV.Get("Pt_Polarization_SystematicUncertainty")) );
+    Graph LamBarSystGraph27GeVPt = ConvertTh1ToGraph( *((TH1D*)LamBarFile27GeV.Get("Pt_Polarization_SystematicUncertainty")) );
+    Graph LambdaStatGraph19GeVRapidity = ConvertTh1ToGraph( *((TH1D*)LambdaFile19GeV.Get("Rapidity_Polarization_StandardMethod")) );
+    Graph LamBarStatGraph19GeVRapidity = ConvertTh1ToGraph( *((TH1D*)LamBarFile19GeV.Get("Rapidity_Polarization_StandardMethod")) );
+    Graph LambdaStatGraph27GeVRapidity = ConvertTh1ToGraph( *((TH1D*)LambdaFile27GeV.Get("ComRapidity_Polarization_StandardMethod")) );
+    Graph LamBarStatGraph27GeVRapidity = ConvertTh1ToGraph( *((TH1D*)LamBarFile27GeV.Get("ComRapidity_Polarization_StandardMethod")) );
+    Graph LambdaSystGraph19GeVRapidity = ConvertTh1ToGraph( *((TH1D*)LambdaFile19GeV.Get("Rapidity_Polarization_SystematicUncertainty")) );
+    Graph LamBarSystGraph19GeVRapidity = ConvertTh1ToGraph( *((TH1D*)LamBarFile19GeV.Get("Rapidity_Polarization_SystematicUncertainty")) );
+    Graph LambdaSystGraph27GeVRapidity = ConvertTh1ToGraph( *((TH1D*)LambdaFile27GeV.Get("ComRapidity_Polarization_SystematicUncertainty")) );
+    Graph LamBarSystGraph27GeVRapidity = ConvertTh1ToGraph( *((TH1D*)LamBarFile27GeV.Get("ComRapidity_Polarization_SystematicUncertainty")) );
 
     gSystem->Exec(Form("mkdir -p Output/%s",OutputFileCommitHash.Data()));
     TexFile MyTexFile(OutputFileCommitHash);
 
     PgfCanvas CentralityCanvas(1,2);
-    CentralityCanvas.SetXYTitles("\\mathrm{Centrality}\\:(\\%)",PolarizationTitle);
+    CentralityCanvas.SetXYTitles("\\mathrm{Centrality}~(\\%)",PolarizationTitle);
     CentralityCanvas.SetXRange(-5,85);
     CentralityCanvas.SetYRange(-0.65,3.65);
     CentralityCanvas.DrawZeroLines();
@@ -449,4 +461,35 @@ void Plotter(TString OutputFileCommitHash = "test"){
     DrawInfoText(CentralityCanvas,"27","$p_{\\mathrm{T}}>0.5$~GeV/$c$, $|y|<1$",22,2.8);
     MyTexFile.AddCanvas(CentralityCanvas);
 
+    PgfCanvas PtCanvas(1,2);
+    PtCanvas.SetXYTitles("p_{\\mathrm{T}}~(\\mathrm{GeV}/c)",PolarizationTitle);
+    PtCanvas.SetXRange(0.3,3.7);
+    PtCanvas.SetYRange(-0.22,1.82);
+    PtCanvas.DrawZeroLines();
+    PtCanvas.cd(0,0);
+    DrawData(LambdaStatGraph19GeVPt,LambdaSystGraph19GeVPt,PtCanvas,true);
+    DrawData(LamBarStatGraph19GeVPt,LamBarSystGraph19GeVPt,PtCanvas,false);
+    DrawInfoText(PtCanvas,"19.6","20-50\\% Centrality, $|y|<1$",1.4,0.05);
+    DrawLambdaPointLegend(PtCanvas,3.35,1.5);
+    PtCanvas.cd(0,1);
+    DrawData(LambdaStatGraph27GeVPt,LambdaSystGraph27GeVPt,PtCanvas,true);
+    DrawData(LamBarStatGraph27GeVPt,LamBarSystGraph27GeVPt,PtCanvas,false);
+    DrawInfoText(PtCanvas,"27","20-50\\% Centrality, $|y|<1$",1.4,0.05);
+    MyTexFile.AddCanvas(PtCanvas);
+
+    PgfCanvas RapidityCanvas(1,2);
+    RapidityCanvas.SetXYTitles("y",PolarizationTitle);
+    RapidityCanvas.SetXRange(-1.7,1.7);
+    RapidityCanvas.SetYRange(-0.22,1.82);
+    RapidityCanvas.DrawZeroLines();
+    RapidityCanvas.cd(0,0);
+    DrawData(LambdaStatGraph19GeVRapidity,LambdaSystGraph19GeVRapidity,RapidityCanvas,true);
+    DrawData(LamBarStatGraph19GeVRapidity,LamBarSystGraph19GeVRapidity,RapidityCanvas,false);
+    DrawInfoText(RapidityCanvas,"19.6","20-50\\% Centrality, $p_{\\mathrm{T}}>0.5$~GeV/$c$",0,.05);
+    DrawLambdaPointLegend(RapidityCanvas,1.5,1.65);
+    RapidityCanvas.cd(0,1);
+    DrawData(LambdaStatGraph27GeVRapidity,LambdaSystGraph27GeVRapidity,RapidityCanvas,true);
+    DrawData(LamBarStatGraph27GeVRapidity,LamBarSystGraph27GeVRapidity,RapidityCanvas,false);
+    DrawInfoText(RapidityCanvas,"27","20-50\\% Centrality, $p_{\\mathrm{T}}>0.5$~GeV/$c$",0,0.05);
+    MyTexFile.AddCanvas(RapidityCanvas);
 }
