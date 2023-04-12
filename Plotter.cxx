@@ -86,8 +86,8 @@ public:
     vector<vector<pair<double,double>>> TextPositions;
 
     PgfCanvas(int NX = 1, int NY = 1):NumDivisionsX(NX),NumDivisionsY(NY){
-        Width = 83/(double)NX;
-        Height = Width;
+        Width = 100/(double)NX;
+        Height = 0.9*Width;
         XAxes.resize(NX);
         YAxes.resize(NY);
         for( int iX=0; iX<NX; iX++ ) DrawZeroLinesVector.push_back(vector<bool>(NY));
@@ -314,14 +314,14 @@ public:
     }
 }; // TexFile
 
-void DrawLambdaPoints(Graph &gr, PgfCanvas &can){
+void DrawLambdaStatPoints(Graph &gr, PgfCanvas &can){
     if( gr.GetN()>0 ) gr.MovePoints(-gr.GetErrorX(0)/10.,0);
     gr.MarkerStyle.Shape = "star";
     gr.MarkerStyle.FillColor = "LambdaFillColor";
     can.AddGraph(gr);
 }
 
-void DrawLamBarPoints(Graph &gr, PgfCanvas &can){
+void DrawLamBarStatPoints(Graph &gr, PgfCanvas &can){
     if( gr.GetN()>0 ) gr.MovePoints(gr.GetErrorX(0)/10.,0);
     gr.MarkerStyle.Shape = "star";
     gr.MarkerStyle.FillColor = "LamBarFillColor";
@@ -376,36 +376,48 @@ void Plotter(TString OutputFileCommitHash = "test"){
     TString LamBarCommitHash19GeVCentrality = "a62202a143af0c296e98e4e8d54cee0f0d583150";
     TString LambdaCommitHash27GeVCentrality = "439a5050cd21fb44dec792bd671aca260296ee8e";
     TString LamBarCommitHash27GeVCentrality = "f522bd60f00be59fcf717b79e0e67f2c6b51618d";
-    // TString LambdaCommitHash19GeV = "044666513c03b24ef87a6361ff6394455d9acde8";
-    // TString LamBarCommitHash19GeV = "5cae15284111395d6a12676b1db189ad894d4e4c";
-    // TString LambdaCommitHash27GeV = "cc4f4f6e0dbd646f7013dd693694d11c9c326238";
-    // TString LamBarCommitHash27GeV = "079840ff12164ccccfc39ab4bb72ef3fbf2f8f88";
-
-    TFile LambdaFile19GeVCentrality(Form("/home/joseph/Documents/Coding/OSUResearch/LambdaPolarizationAnalyses/Local/19GeV/Output/Histograms/%s/%s.PolarizationHistograms.root",LambdaCommitHash19GeVCentrality.Data(),LambdaCommitHash19GeVCentrality.Data())); TFile LamBarFile19GeVCentrality(Form("/home/joseph/Documents/Coding/OSUResearch/LambdaPolarizationAnalyses/Local/19GeV/Output/Histograms/%s/%s.PolarizationHistograms.root",LamBarCommitHash19GeVCentrality.Data(),LamBarCommitHash19GeVCentrality.Data()));
-    Graph LambdaStatGraph19GeVCentrality = ConvertTh1ToGraph( *((TH1D*)LambdaFile19GeVCentrality.Get("Centrality_Polarization_StandardMethod")) );
-    Graph LamBarStatGraph19GeVCentrality = ConvertTh1ToGraph( *((TH1D*)LamBarFile19GeVCentrality.Get("Centrality_Polarization_StandardMethod")) );
-    TFile LambdaFile27GeVCentrality(Form("/home/joseph/Documents/Coding/OSUResearch/LambdaPolarizationAnalyses/Local/27GeV/Output/Histograms/%s/%s.PolarizationHistograms.root",LambdaCommitHash27GeVCentrality.Data(),LambdaCommitHash27GeVCentrality.Data())); TFile LamBarFile27GeVCentrality(Form("/home/joseph/Documents/Coding/OSUResearch/LambdaPolarizationAnalyses/Local/27GeV/Output/Histograms/%s/%s.PolarizationHistograms.root",LamBarCommitHash27GeVCentrality.Data(),LamBarCommitHash27GeVCentrality.Data()));
-    Graph LambdaStatGraph27GeVCentrality = ConvertTh1ToGraph( *((TH1D*)LambdaFile27GeVCentrality.Get("Centrality_Polarization_StandardMethod")) );
-    Graph LamBarStatGraph27GeVCentrality = ConvertTh1ToGraph( *((TH1D*)LamBarFile27GeVCentrality.Get("Centrality_Polarization_StandardMethod")) );
+    TString LambdaCommitHash19GeV = "044666513c03b24ef87a6361ff6394455d9acde8";
+    TString LamBarCommitHash19GeV = "5cae15284111395d6a12676b1db189ad894d4e4c";
+    TString LambdaCommitHash27GeV = "cc4f4f6e0dbd646f7013dd693694d11c9c326238";
+    TString LamBarCommitHash27GeV = "079840ff12164ccccfc39ab4bb72ef3fbf2f8f88";
 
     TString PolarizationTitle = "P_{H}\\:(\\%)";
 
+    TFile LambdaFile19GeVCentrality(Form("/home/joseph/Documents/Coding/OSUResearch/LambdaPolarizationAnalyses/Local/19GeV/Output/Histograms/%s/%s.PolarizationHistograms.root",LambdaCommitHash19GeVCentrality.Data(),LambdaCommitHash19GeVCentrality.Data()));
+    TFile LamBarFile19GeVCentrality(Form("/home/joseph/Documents/Coding/OSUResearch/LambdaPolarizationAnalyses/Local/19GeV/Output/Histograms/%s/%s.PolarizationHistograms.root",LamBarCommitHash19GeVCentrality.Data(),LamBarCommitHash19GeVCentrality.Data()));
+    TFile LambdaFile27GeVCentrality(Form("/home/joseph/Documents/Coding/OSUResearch/LambdaPolarizationAnalyses/Local/27GeV/Output/Histograms/%s/%s.PolarizationHistograms.root",LambdaCommitHash27GeVCentrality.Data(),LambdaCommitHash27GeVCentrality.Data()));
+    TFile LamBarFile27GeVCentrality(Form("/home/joseph/Documents/Coding/OSUResearch/LambdaPolarizationAnalyses/Local/27GeV/Output/Histograms/%s/%s.PolarizationHistograms.root",LamBarCommitHash27GeVCentrality.Data(),LamBarCommitHash27GeVCentrality.Data()));
+    TFile LambdaFile19GeV(Form("/home/joseph/Documents/Coding/OSUResearch/LambdaPolarizationAnalyses/Local/19GeV/Output/Histograms/%s/%s.PolarizationHistograms.root",LambdaCommitHash19GeV.Data(),LambdaCommitHash19GeV.Data()));
+    TFile LamBarFile19GeV(Form("/home/joseph/Documents/Coding/OSUResearch/LambdaPolarizationAnalyses/Local/19GeV/Output/Histograms/%s/%s.PolarizationHistograms.root",LamBarCommitHash19GeV.Data(),LamBarCommitHash19GeV.Data()));
+    TFile LambdaFile27GeV(Form("/home/joseph/Documents/Coding/OSUResearch/LambdaPolarizationAnalyses/Local/27GeV/Output/Histograms/%s/%s.PolarizationHistograms.root",LambdaCommitHash27GeV.Data(),LambdaCommitHash27GeV.Data()));
+    TFile LamBarFile27GeV(Form("/home/joseph/Documents/Coding/OSUResearch/LambdaPolarizationAnalyses/Local/27GeV/Output/Histograms/%s/%s.PolarizationHistograms.root",LamBarCommitHash27GeV.Data(),LamBarCommitHash27GeV.Data()));
+
+    Graph LambdaStatGraph19GeVCentrality = ConvertTh1ToGraph( *((TH1D*)LambdaFile19GeVCentrality.Get("Centrality_Polarization_StandardMethod")) );
+    Graph LamBarStatGraph19GeVCentrality = ConvertTh1ToGraph( *((TH1D*)LamBarFile19GeVCentrality.Get("Centrality_Polarization_StandardMethod")) );
+    Graph LambdaStatGraph27GeVCentrality = ConvertTh1ToGraph( *((TH1D*)LambdaFile27GeVCentrality.Get("Centrality_Polarization_StandardMethod")) );
+    Graph LamBarStatGraph27GeVCentrality = ConvertTh1ToGraph( *((TH1D*)LamBarFile27GeVCentrality.Get("Centrality_Polarization_StandardMethod")) );
+    Graph LambdaStatGraph19GeVPt = ConvertTh1ToGraph( *((TH1D*)LambdaFile19GeV.Get("Pt_Polarization_StandardMethod")) );
+    Graph LamBarStatGraph19GeVPt = ConvertTh1ToGraph( *((TH1D*)LamBarFile19GeV.Get("Pt_Polarization_StandardMethod")) );
+    Graph LambdaStatGraph27GeVPt = ConvertTh1ToGraph( *((TH1D*)LambdaFile27GeV.Get("Pt_Polarization_StandardMethod")) );
+    Graph LamBarStatGraph27GeVPt = ConvertTh1ToGraph( *((TH1D*)LamBarFile27GeV.Get("Pt_Polarization_StandardMethod")) );
+
     gSystem->Exec(Form("mkdir -p Output/%s",OutputFileCommitHash.Data()));
     TexFile MyTexFile(OutputFileCommitHash);
-    PgfCanvas MyCanvas(1,2);
-    MyCanvas.SetXYTitles("\\mathrm{Centrality}\\:(\\%)",PolarizationTitle);
-    MyCanvas.SetXRange(-5,85);
-    MyCanvas.SetYRange(-0.65,3.65);
-    MyCanvas.DrawZeroLines();
-    MyCanvas.cd(0,0);
-    DrawLambdaPoints(LambdaStatGraph19GeVCentrality,MyCanvas);
-    DrawLamBarPoints(LamBarStatGraph19GeVCentrality,MyCanvas);
-    DrawInfoText(MyCanvas,"19.6","$p_{\\mathrm{T}}>0.5$~GeV/$c$, $|y|<1$",22,2.8);
-    MyCanvas.cd(0,1);
-    DrawLambdaPoints(LambdaStatGraph27GeVCentrality,MyCanvas);
-    DrawLamBarPoints(LamBarStatGraph27GeVCentrality,MyCanvas);
-    DrawLambdaPointLegend(MyCanvas,15,1.5);
-    DrawInfoText(MyCanvas,"27","$p_{\\mathrm{T}}>0.5$~GeV/$c$, $|y|<1$",22,2.8);
 
-    MyTexFile.AddCanvas(MyCanvas);
+    PgfCanvas CentralityCanvas(1,2);
+    CentralityCanvas.SetXYTitles("\\mathrm{Centrality}\\:(\\%)",PolarizationTitle);
+    CentralityCanvas.SetXRange(-5,85);
+    CentralityCanvas.SetYRange(-0.65,3.65);
+    CentralityCanvas.DrawZeroLines();
+    CentralityCanvas.cd(0,0);
+    DrawLambdaStatPoints(LambdaStatGraph19GeVCentrality,CentralityCanvas);
+    DrawLamBarStatPoints(LamBarStatGraph19GeVCentrality,CentralityCanvas);
+    DrawInfoText(CentralityCanvas,"19.6","$p_{\\mathrm{T}}>0.5$~GeV/$c$, $|y|<1$",22,2.8);
+    CentralityCanvas.cd(0,1);
+    DrawLambdaStatPoints(LambdaStatGraph27GeVCentrality,CentralityCanvas);
+    DrawLamBarStatPoints(LamBarStatGraph27GeVCentrality,CentralityCanvas);
+    DrawLambdaPointLegend(CentralityCanvas,15,1.5);
+    DrawInfoText(CentralityCanvas,"27","$p_{\\mathrm{T}}>0.5$~GeV/$c$, $|y|<1$",22,2.8);
+    MyTexFile.AddCanvas(CentralityCanvas);
+
 }
