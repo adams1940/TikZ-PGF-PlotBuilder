@@ -466,7 +466,7 @@ namespace SplittingFigureTools{
   }
 
   void DrawLambdaPointLegend(double x, double y){
-    double XShift = 2.5, TitleYShift = 0;
+    double XShift = 2.5, TitleYShift = 0, MarkerYShift = -2.5;
     Box * Background = new Box(x,y); 
     can->AddNode(Background);
     TextBox * LambdaTitle = new TextBox(x,y);
@@ -479,9 +479,21 @@ namespace SplittingFigureTools{
     LamBarTitle->Shift(XShift,TitleYShift);
     LamBarTitle->Anchor = "south";
     can->AddNode(LamBarTitle);
-    can->AddNode(Form("\\node[color=black, fill=LambdaFillColor, line width=0.150000mm, star, minimum size=3.000000mm, inner sep=0pt, star point ratio = \\PerfectStarRadiusRatio, xshift=-2.5mm, yshift=-2.5mm, draw] at (axis cs: %f,%f){};",x,y));
-    can->AddNode(Form("\\node[color=black, fill=LamBarFillColor, line width=0.150000mm, star, minimum size=3.000000mm, inner sep=0pt, star point ratio = \\PerfectStarRadiusRatio, xshift= 2.5mm, yshift=-2.5mm, draw] at (axis cs: %f,%f){};",x,y));
-  	can->AddNode(Form("\\node[color=LamBarInnerFillColor, fill=LamBarInnerFillColor, line width=0.000000mm, star, minimum size=0.750000mm, inner sep=0pt, star point ratio = \\PerfectStarRadiusRatio, xshift= 2.5mm, yshift=-2.5mm, draw] at (axis cs: %f,%f){};",x,y));
+    Marker * LambdaLegendMarker = new Marker();
+    *LambdaLegendMarker = LambdaMarkerStyle;
+    LambdaLegendMarker->SetAnchorPosition(x,y);
+    LambdaLegendMarker->Shift(-XShift,MarkerYShift);
+    can->AddNode(LambdaLegendMarker);
+    Marker * LamBarLegendMarker = new Marker();
+    *LamBarLegendMarker = LamBarMarkerStyle;
+    LamBarLegendMarker->SetAnchorPosition(x,y);
+    LamBarLegendMarker->Shift(XShift,MarkerYShift);
+    can->AddNode(LamBarLegendMarker);
+    Marker * LamBarInnerLegendMarker = new Marker();
+    *LamBarInnerLegendMarker = LamBarInnerMarkerStyle;
+    LamBarInnerLegendMarker->SetAnchorPosition(x,y);
+    LamBarInnerLegendMarker->Shift(XShift,MarkerYShift);
+    can->AddNode(LamBarInnerLegendMarker);
   }
 };
 
