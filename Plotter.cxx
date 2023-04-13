@@ -390,97 +390,117 @@ public:
     }
 }; // TexFile
 
-void DrawLambdaStatPoints(Graph &gr, PgfCanvas &can){
+namespace SplittingFigureTools{
+  Marker LambdaMarkerStyle, LamBarMarkerStyle, LamBarInnerMarkerStyle;
+  PgfCanvas * can;
+  // SplittingFigure(){
+  void SetMarkerStyles(){
+    LambdaMarkerStyle.Shape = "star";
+    LambdaMarkerStyle.FillColor = "LambdaFillColor";
+    LamBarMarkerStyle.Shape = "star";
+    LamBarMarkerStyle.FillColor = "LamBarFillColor";
+    LamBarInnerMarkerStyle.Shape = "star";
+    LamBarInnerMarkerStyle.Size = LamBarMarkerStyle.Size*0.25;
+    LamBarInnerMarkerStyle.OutlineWidthScale = 0;
+    LamBarInnerMarkerStyle.OutlineColor = "LamBarInnerFillColor";
+    LamBarInnerMarkerStyle.FillColor = "LamBarInnerFillColor";
+  }
+
+  void SetCanvas(PgfCanvas &c){
+    can = &c;
+  }
+
+  void DrawLambdaStatPoints(Graph &gr){
     if( gr.GetN()>0 ) gr.MovePoints(-gr.GetErrorX(0)/10.,0);
-    gr.MarkerStyle.Shape = "star";
-    gr.MarkerStyle.FillColor = "LambdaFillColor";
-    can.AddGraph(gr);
-}
+    gr.MarkerStyle = LambdaMarkerStyle;
+    can->AddGraph(gr);
+  }
 
-void DrawLamBarStatPoints(Graph &gr, PgfCanvas &can){
+  void DrawLamBarStatPoints(Graph &gr){
     if( gr.GetN()>0 ) gr.MovePoints(gr.GetErrorX(0)/10.,0);
-    gr.MarkerStyle.Shape = "star";
-    gr.MarkerStyle.FillColor = "LamBarFillColor";
-
-}
-
-void DrawData(Graph &StatGraph, Graph &SystGraph, PgfCanvas &can, bool IsLambda){
-  int ProtonCharge;
-  TString ParentName;
-  if( IsLambda ){ ProtonCharge = 1; ParentName = "Lambda"; }
-  else { ProtonCharge = -1; ParentName = "LamBar"; };
-
-  if( StatGraph.GetN()>0 ){
-    double XShift = 0.1;
-    StatGraph.MovePoints(-ProtonCharge*XShift*StatGraph.GetErrorX(0),0);
-    SystGraph.MovePoints(-ProtonCharge*XShift*StatGraph.GetErrorX(0),0);
+    gr.MarkerStyle = LambdaMarkerStyle;
+    can->AddGraph(gr);
   }
 
-  StatGraph.MarkerStyle.Shape = "star";
-  StatGraph.MarkerStyle.FillColor = Form("%sFillColor",ParentName.Data());
-
-  can.AddGraph(StatGraph);
-
-  double SystBoxWidthFactor=0.4;
-  for( int iPoint=0; iPoint<SystGraph.GetN(); iPoint++ ){
-    can.AddNode(Form("\\draw[thick] (axis cs: %f,%f) rectangle (axis cs: %f,%f);",SystGraph.GetPointX(iPoint)-SystBoxWidthFactor*StatGraph.GetErrorX(0),SystGraph.GetPointY(iPoint)-SystGraph.GetErrorY(iPoint),SystGraph.GetPointX(iPoint)+SystBoxWidthFactor*StatGraph.GetErrorX(0),SystGraph.GetPointY(iPoint)+SystGraph.GetErrorY(iPoint)));
-  }
-
-  Graph grInner(StatGraph);
-  if( !IsLambda ){
-    for( int Point=0; Point<grInner.GetN(); Point++ ){
-      grInner.SetPointError(Point,0,0,0,0);
+  void DrawData(Graph &StatGraph, Graph &SystGraph, bool IsLambda){
+    int ProtonCharge;
+    TString ParentName;
+    if( IsLambda ){
+      ProtonCharge = 1;
+      ParentName = "Lambda";
+      StatGraph.MarkerStyle = LambdaMarkerStyle;
     }
-    grInner.MarkerStyle.Shape = "star";
-    grInner.MarkerStyle.Size = StatGraph.MarkerStyle.Size*0.25;
-    grInner.MarkerStyle.OutlineWidthScale = 0;
-    grInner.MarkerStyle.OutlineColor = "LamBarInnerFillColor";
-    grInner.MarkerStyle.FillColor = "LamBarInnerFillColor";
-    can.AddGraph(grInner);
+    else{
+      ProtonCharge = -1;
+      ParentName = "LamBar";
+      StatGraph.MarkerStyle = LamBarMarkerStyle;
+    };
+
+    if( StatGraph.GetN()>0 ){
+      double XShift = 0.1;
+      StatGraph.MovePoints(-ProtonCharge*XShift*StatGraph.GetErrorX(0),0);
+      SystGraph.MovePoints(-ProtonCharge*XShift*StatGraph.GetErrorX(0),0);
+    }
+
+    can->AddGraph(StatGraph);
+
+    double SystBoxWidthFactor=0.4;
+    for( int iPoint=0; iPoint<SystGraph.GetN(); iPoint++ ){
+      can->AddNode(Form("\\draw[thick] (axis cs: %f,%f) rectangle (axis cs: %f,%f);",SystGraph.GetPointX(iPoint)-SystBoxWidthFactor*StatGraph.GetErrorX(0),SystGraph.GetPointY(iPoint)-SystGraph.GetErrorY(iPoint),SystGraph.GetPointX(iPoint)+SystBoxWidthFactor*StatGraph.GetErrorX(0),SystGraph.GetPointY(iPoint)+SystGraph.GetErrorY(iPoint)));
+    }
+
+    Graph grInner(StatGraph);
+    if( !IsLambda ){
+      for( int Point=0; Point<grInner.GetN(); Point++ ){
+        grInner.SetPointError(Point,0,0,0,0);
+      }
+      grInner.MarkerStyle = LamBarInnerMarkerStyle;
+      can->AddGraph(grInner);
+    }
+  } // DrawData
+
+  void DrawInfoText(TString Energy, TString PtRapidityCentrality, double x, double y){
+    TextBox * text = new TextBox(x,y);
+    text->Text = Form("STAR Au+Au, $\\sNN=%s$~GeV\\\\%s\\\\$\\alpha_\\Lambda=0.732$",Energy.Data(),PtRapidityCentrality.Data());
+    can->AddNode(text);
   }
-} // DrawData
 
-Graph ConvertTh1ToGraph(const TH1 &Hist){
-    int NumBins = Hist.GetNbinsX();
-    double BinWidth = Hist.GetBinWidth(0);
-    double XErrorOverXRange = BinWidth/(Hist.GetBinLowEdge(NumBins+1)-Hist.GetBinLowEdge(1));
-    int PointCounter = 0;
-    Graph gr;
-    gr.SetName(Form("%s_gr",Hist.GetName()));
-    for( int Bin=1; Bin<=NumBins; Bin++ ){
-        double Val = Hist.GetBinContent(Bin), Err = Hist.GetBinError(Bin);
-        if( Val==0 && Err==0 ) continue;
-        gr.SetPoint(PointCounter,Hist.GetBinCenter(Bin),Val);
-        gr.SetPointError(PointCounter,Hist.GetBinWidth(Bin)/2.,Hist.GetBinWidth(Bin)/2.,Err,Err);
-        PointCounter++;
-    } // Bin
-    return gr;
-}
+  void DrawLambdaPointLegend(double x, double y){
+    double XShift = 2.5, TitleYShift = 0;
+    Box * Background = new Box(x,y); 
+    can->AddNode(Background);
+    TextBox * LambdaTitle = new TextBox(x,y);
+    LambdaTitle->Text = "$\\Lambda$";
+    LambdaTitle->Shift(-XShift,TitleYShift);
+    LambdaTitle->Anchor = "south";
+    can->AddNode(LambdaTitle);
+    TextBox * LamBarTitle = new TextBox(x,y);
+    LamBarTitle->Text = "$\\bar{\\Lambda}$";
+    LamBarTitle->Shift(XShift,TitleYShift);
+    LamBarTitle->Anchor = "south";
+    can->AddNode(LamBarTitle);
+    can->AddNode(Form("\\node[color=black, fill=LambdaFillColor, line width=0.150000mm, star, minimum size=3.000000mm, inner sep=0pt, star point ratio = \\PerfectStarRadiusRatio, xshift=-2.5mm, yshift=-2.5mm, draw] at (axis cs: %f,%f){};",x,y));
+    can->AddNode(Form("\\node[color=black, fill=LamBarFillColor, line width=0.150000mm, star, minimum size=3.000000mm, inner sep=0pt, star point ratio = \\PerfectStarRadiusRatio, xshift= 2.5mm, yshift=-2.5mm, draw] at (axis cs: %f,%f){};",x,y));
+  	can->AddNode(Form("\\node[color=LamBarInnerFillColor, fill=LamBarInnerFillColor, line width=0.000000mm, star, minimum size=0.750000mm, inner sep=0pt, star point ratio = \\PerfectStarRadiusRatio, xshift= 2.5mm, yshift=-2.5mm, draw] at (axis cs: %f,%f){};",x,y));
+  }
+};
 
-void DrawInfoText(PgfCanvas &can, TString Energy, TString PtRapidityCentrality, double x, double y){
-  TextBox * text = new TextBox(x,y);
-  text->Text = Form("STAR Au+Au, $\\sNN=%s$~GeV\\\\%s\\\\$\\alpha_\\Lambda=0.732$",Energy.Data(),PtRapidityCentrality.Data());
-  can.AddNode(text);
-}
-
-void DrawLambdaPointLegend(PgfCanvas &can, double x, double y){
-  double XShift = 2.5, TitleYShift = 0;
-  Box * Background = new Box(x,y); 
-  can.AddNode(Background);
-  TextBox * LambdaTitle = new TextBox(x,y);
-  LambdaTitle->Text = "$\\Lambda$";
-  LambdaTitle->Shift(-XShift,TitleYShift);
-  LambdaTitle->Anchor = "south";
-  can.AddNode(LambdaTitle);
-  TextBox * LamBarTitle = new TextBox(x,y);
-  LamBarTitle->Text = "$\\bar{\\Lambda}$";
-  LamBarTitle->Shift(XShift,TitleYShift);
-  LamBarTitle->Anchor = "south";
-  can.AddNode(LamBarTitle);
-  can.AddNode(Form("\\node[color=black, fill=LambdaFillColor, line width=0.150000mm, star, minimum size=3.000000mm, inner sep=0pt, star point ratio = \\PerfectStarRadiusRatio, xshift=-2.5mm, yshift=-2.5mm, draw] at (axis cs: %f,%f){};",x,y));
-  can.AddNode(Form("\\node[color=black, fill=LamBarFillColor, line width=0.150000mm, star, minimum size=3.000000mm, inner sep=0pt, star point ratio = \\PerfectStarRadiusRatio, xshift= 2.5mm, yshift=-2.5mm, draw] at (axis cs: %f,%f){};",x,y));
-	can.AddNode(Form("\\node[color=LamBarInnerFillColor, fill=LamBarInnerFillColor, line width=0.000000mm, star, minimum size=0.750000mm, inner sep=0pt, star point ratio = \\PerfectStarRadiusRatio, xshift= 2.5mm, yshift=-2.5mm, draw] at (axis cs: %f,%f){};",x,y));
-}
+  Graph ConvertTh1ToGraph(const TH1 &Hist){
+      int NumBins = Hist.GetNbinsX();
+      double BinWidth = Hist.GetBinWidth(0);
+      double XErrorOverXRange = BinWidth/(Hist.GetBinLowEdge(NumBins+1)-Hist.GetBinLowEdge(1));
+      int PointCounter = 0;
+      Graph gr;
+      gr.SetName(Form("%s_gr",Hist.GetName()));
+      for( int Bin=1; Bin<=NumBins; Bin++ ){
+          double Val = Hist.GetBinContent(Bin), Err = Hist.GetBinError(Bin);
+          if( Val==0 && Err==0 ) continue;
+          gr.SetPoint(PointCounter,Hist.GetBinCenter(Bin),Val);
+          gr.SetPointError(PointCounter,Hist.GetBinWidth(Bin)/2.,Hist.GetBinWidth(Bin)/2.,Err,Err);
+          PointCounter++;
+      } // Bin
+      return gr;
+  }
 
 
 void Plotter(TString OutputFileCommitHash = "test"){
@@ -538,14 +558,17 @@ void Plotter(TString OutputFileCommitHash = "test"){
     CentralityCanvas.SetYRange(-0.65,3.65);
     CentralityCanvas.DrawZeroLines();
     CentralityCanvas.cd(0,0);
-    DrawData(LambdaStatGraph19GeVCentrality,LambdaSystGraph19GeVCentrality,CentralityCanvas,true);
-    DrawData(LamBarStatGraph19GeVCentrality,LamBarSystGraph19GeVCentrality,CentralityCanvas,false);
-    DrawInfoText(CentralityCanvas,"19.6","$p_{\\mathrm{T}}>0.5$~GeV/$c$, $|y|<1$",22,2.8);
+    // SplittingFigure CentralityFigure;
+    SplittingFigureTools::SetCanvas(CentralityCanvas);
+    SplittingFigureTools::SetMarkerStyles();
+    SplittingFigureTools::DrawData(LambdaStatGraph19GeVCentrality,LambdaSystGraph19GeVCentrality,true);
+    SplittingFigureTools::DrawData(LamBarStatGraph19GeVCentrality,LamBarSystGraph19GeVCentrality,false);
+    SplittingFigureTools::DrawInfoText("19.6","$p_{\\mathrm{T}}>0.5$~GeV/$c$, $|y|<1$",22,2.8);
     CentralityCanvas.cd(0,1);
-    DrawData(LambdaStatGraph27GeVCentrality,LambdaSystGraph27GeVCentrality,CentralityCanvas,true);
-    DrawData(LamBarStatGraph27GeVCentrality,LamBarSystGraph27GeVCentrality,CentralityCanvas,false);
-    DrawLambdaPointLegend(CentralityCanvas,15,1.5);
-    DrawInfoText(CentralityCanvas,"27","$p_{\\mathrm{T}}>0.5$~GeV/$c$, $|y|<1$",22,2.8);
+    SplittingFigureTools::DrawData(LambdaStatGraph27GeVCentrality,LambdaSystGraph27GeVCentrality,true);
+    SplittingFigureTools::DrawData(LamBarStatGraph27GeVCentrality,LamBarSystGraph27GeVCentrality,false);
+    SplittingFigureTools::DrawLambdaPointLegend(15,1.5);
+    SplittingFigureTools::DrawInfoText("27","$p_{\\mathrm{T}}>0.5$~GeV/$c$, $|y|<1$",22,2.8);
     MyTexFile.AddCanvas(CentralityCanvas);
 
     PgfCanvas PtCanvas(1,2);
@@ -554,14 +577,15 @@ void Plotter(TString OutputFileCommitHash = "test"){
     PtCanvas.SetYRange(-0.22,1.82);
     PtCanvas.DrawZeroLines();
     PtCanvas.cd(0,0);
-    DrawData(LambdaStatGraph19GeVPt,LambdaSystGraph19GeVPt,PtCanvas,true);
-    DrawData(LamBarStatGraph19GeVPt,LamBarSystGraph19GeVPt,PtCanvas,false);
-    DrawInfoText(PtCanvas,"19.6","20-50\\% Centrality, $|y|<1$",1.4,0.05);
-    DrawLambdaPointLegend(PtCanvas,3.35,1.5);
+    SplittingFigureTools::SetCanvas(PtCanvas);
+    SplittingFigureTools::DrawData(LambdaStatGraph19GeVPt,LambdaSystGraph19GeVPt,true);
+    SplittingFigureTools::DrawData(LamBarStatGraph19GeVPt,LamBarSystGraph19GeVPt,false);
+    SplittingFigureTools::DrawInfoText("19.6","20-50\\% Centrality, $|y|<1$",1.4,0.05);
+    SplittingFigureTools::DrawLambdaPointLegend(3.35,1.5);
     PtCanvas.cd(0,1);
-    DrawData(LambdaStatGraph27GeVPt,LambdaSystGraph27GeVPt,PtCanvas,true);
-    DrawData(LamBarStatGraph27GeVPt,LamBarSystGraph27GeVPt,PtCanvas,false);
-    DrawInfoText(PtCanvas,"27","20-50\\% Centrality, $|y|<1$",1.4,0.05);
+    SplittingFigureTools::DrawData(LambdaStatGraph27GeVPt,LambdaSystGraph27GeVPt,true);
+    SplittingFigureTools::DrawData(LamBarStatGraph27GeVPt,LamBarSystGraph27GeVPt,false);
+    SplittingFigureTools::DrawInfoText("27","20-50\\% Centrality, $|y|<1$",1.4,0.05);
     MyTexFile.AddCanvas(PtCanvas);
 
     PgfCanvas RapidityCanvas(1,2);
@@ -570,14 +594,15 @@ void Plotter(TString OutputFileCommitHash = "test"){
     RapidityCanvas.SetYRange(-0.22,1.82);
     RapidityCanvas.DrawZeroLines();
     RapidityCanvas.cd(0,0);
-    DrawData(LambdaStatGraph19GeVRapidity,LambdaSystGraph19GeVRapidity,RapidityCanvas,true);
-    DrawData(LamBarStatGraph19GeVRapidity,LamBarSystGraph19GeVRapidity,RapidityCanvas,false);
-    DrawInfoText(RapidityCanvas,"19.6","20-50\\% Centrality, $p_{\\mathrm{T}}>0.5$~GeV/$c$",0,.05);
-    DrawLambdaPointLegend(RapidityCanvas,1.5,1.65);
+    SplittingFigureTools::SetCanvas(RapidityCanvas);
+    SplittingFigureTools::DrawData(LambdaStatGraph19GeVRapidity,LambdaSystGraph19GeVRapidity,true);
+    SplittingFigureTools::DrawData(LamBarStatGraph19GeVRapidity,LamBarSystGraph19GeVRapidity,false);
+    SplittingFigureTools::DrawInfoText("19.6","20-50\\% Centrality, $p_{\\mathrm{T}}>0.5$~GeV/$c$",0,.05);
+    SplittingFigureTools::DrawLambdaPointLegend(1.5,1.65);
     RapidityCanvas.cd(0,1);
-    DrawData(LambdaStatGraph27GeVRapidity,LambdaSystGraph27GeVRapidity,RapidityCanvas,true);
-    DrawData(LamBarStatGraph27GeVRapidity,LamBarSystGraph27GeVRapidity,RapidityCanvas,false);
-    DrawInfoText(RapidityCanvas,"27","20-50\\% Centrality, $p_{\\mathrm{T}}>0.5$~GeV/$c$",0,0.05);
+    SplittingFigureTools::DrawData(LambdaStatGraph27GeVRapidity,LambdaSystGraph27GeVRapidity,true);
+    SplittingFigureTools::DrawData(LamBarStatGraph27GeVRapidity,LamBarSystGraph27GeVRapidity,false);
+    SplittingFigureTools::DrawInfoText("27","20-50\\% Centrality, $p_{\\mathrm{T}}>0.5$~GeV/$c$",0,0.05);
     MyTexFile.AddCanvas(RapidityCanvas);
 
     double Res19GeV[] = {0.2048, 0.371, 0.4768, 0.5418, 0.5773, 0.5924, 0.5932, 0.5826, 0.563, 0.5343, 0.495, 0.4474, 0.399, 0.3499, 0.3015, 0.2599};
