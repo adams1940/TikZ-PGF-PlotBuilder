@@ -15,7 +15,7 @@ struct Axis{
 struct Node{
   TString OutlineColor, FillColor;
   vector<TString> Options;
-  TString Anchor;
+  TString Anchor, Align;
   double AnchorX, AnchorY; // axis cs
   double ShiftX, ShiftY; // mm
   TString Text;
@@ -23,6 +23,7 @@ struct Node{
   
   Node(double x = 0, double y = 0):AnchorX(x),AnchorY(y){
     Anchor = "center";
+    Align = "center";
     IncludeDraw = "true";
     ShiftX = 0;
     ShiftY = 0;
@@ -45,6 +46,7 @@ struct Node{
     if( ShiftX!=0 ) Options.push_back(Form("xshift=%fmm",ShiftX));
     if( ShiftY!=0 ) Options.push_back(Form("yshift=%fmm",ShiftY));
     Options.push_back(Form("anchor=%s",Anchor.Data()));
+    Options.push_back(Form("align=%s",Align.Data()));
     TString OptionsWithCommas;
     for( TString Option:Options ) OptionsWithCommas.Append(Form("%s, ",Option.Data()));
     return Form("\\node[%s%s] at (axis cs: %f,%f){%s};",OptionsWithCommas.Data(),IncludeDraw?"draw":"",AnchorX,AnchorY,Text.Data());
@@ -161,8 +163,6 @@ public:
     vector<TString> AdditionalNodes[10][10]; // Ideally would be [NumDivisionsX][NumDivisionsY]
     vector<Node*> Nodes[10][10]; // Ideally would be [NumDivisionsX][NumDivisionsY]
     vector<vector<bool>> DrawZeroLinesVector;
-    vector<vector<TString>> Texts;
-    vector<vector<pair<double,double>>> TextPositions;
 
     PgfCanvas(int NX = 1, int NY = 1):NumDivisionsX(NX),NumDivisionsY(NY){
         Width = 100/(double)NX;
@@ -170,8 +170,6 @@ public:
         XAxes.resize(NX);
         YAxes.resize(NY);
         for( int iX=0; iX<NX; iX++ ) DrawZeroLinesVector.push_back(vector<bool>(NY));
-        for( int iX=0; iX<NX; iX++ ) Texts.push_back(vector<TString>(NY));
-        for( int iX=0; iX<NX; iX++ ) TextPositions.push_back(vector<pair<double,double>>(NY));
         cd();
     }
     virtual ~PgfCanvas(){}
@@ -221,11 +219,6 @@ public:
 
     void DrawZeroLine(){
       DrawZeroLinesVector[ActivePadX][ActivePadY] = true;
-    }
-
-    void AddText(TString Text, double x, double y){
-      Texts[ActivePadX][ActivePadY] = Text;
-      TextPositions[ActivePadX][ActivePadY] = pair<double,double>(x,y);
     }
 
     void AddNode(TString Text){
@@ -361,8 +354,6 @@ public:
 
                 for( TString Node:Canvas.AdditionalNodes[ColumnX][ColumnY] ) AddPictureLine(Node.Data());
 
-                if( Canvas.Texts[ColumnX][ColumnY]!="" ) AddPictureLine(Form("\\node [anchor=center, align=center] at (axis cs: %f,%f){%s};",Canvas.TextPositions[ColumnX][ColumnY].first,Canvas.TextPositions[ColumnX][ColumnY].second,Canvas.Texts[ColumnX][ColumnY].Data()));
-
                 for( Graph gr:Canvas.Graphs[ColumnX][ColumnY] ){
                     if( gr.DrawLines ){
                         for( int iPoint=0; iPoint<gr.GetN()-1; iPoint++ ){
@@ -467,7 +458,9 @@ Graph ConvertTh1ToGraph(const TH1 &Hist){
 }
 
 void DrawInfoText(PgfCanvas &can, TString Energy, TString PtRapidityCentrality, double x, double y){
-  can.AddText(Form("STAR Au+Au, $\\sNN=%s$~GeV\\\\%s\\\\$\\alpha_\\Lambda=0.732$",Energy.Data(),PtRapidityCentrality.Data()),x,y);
+  TextBox * text = new TextBox(x,y);
+  text->Text = Form("STAR Au+Au, $\\sNN=%s$~GeV\\\\%s\\\\$\\alpha_\\Lambda=0.732$",Energy.Data(),PtRapidityCentrality.Data());
+  can.AddNode(text);
 }
 
 void DrawLambdaPointLegend(PgfCanvas &can, double x, double y){
@@ -484,8 +477,6 @@ void DrawLambdaPointLegend(PgfCanvas &can, double x, double y){
   LamBarTitle->Shift(XShift,TitleYShift);
   LamBarTitle->Anchor = "south";
   can.AddNode(LamBarTitle);
-  // can.AddNode(Form("\\node[anchor=center,align = center, xshift=-2.5mm, yshift=2.5mm] at (axis cs: %f,%f){$\\Lambda$};",x,y));
-  // can.AddNode(Form("\\node[anchor=center,align = center, xshift= 2.5mm, yshift=2.5mm] at (axis cs: %f,%f){$\\bar{\\Lambda}$};",x,y));
   can.AddNode(Form("\\node[color=black, fill=LambdaFillColor, line width=0.150000mm, star, minimum size=3.000000mm, inner sep=0pt, star point ratio = \\PerfectStarRadiusRatio, xshift=-2.5mm, yshift=-2.5mm, draw] at (axis cs: %f,%f){};",x,y));
   can.AddNode(Form("\\node[color=black, fill=LamBarFillColor, line width=0.150000mm, star, minimum size=3.000000mm, inner sep=0pt, star point ratio = \\PerfectStarRadiusRatio, xshift= 2.5mm, yshift=-2.5mm, draw] at (axis cs: %f,%f){};",x,y));
 	can.AddNode(Form("\\node[color=LamBarInnerFillColor, fill=LamBarInnerFillColor, line width=0.000000mm, star, minimum size=0.750000mm, inner sep=0pt, star point ratio = \\PerfectStarRadiusRatio, xshift= 2.5mm, yshift=-2.5mm, draw] at (axis cs: %f,%f){};",x,y));
