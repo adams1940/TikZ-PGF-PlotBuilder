@@ -16,14 +16,15 @@ struct Node{
   TString OutlineColor, FillColor;
   vector<TString> Options;
   TString Anchor;
-  double AnchorX, AnchorY;
-  double ShiftX, ShiftY;
+  double AnchorX, AnchorY; // axis cs
+  double ShiftX, ShiftY; // mm
+  TString Text;
+  bool IncludeDraw;
   
-  Node(){
+  Node(double x = 0, double y = 0):AnchorX(x),AnchorY(y){
     Anchor = "center";
-    AnchorX = 0; // axis cx
-    AnchorY = 0;
-    ShiftX = 0; // mm
+    IncludeDraw = "true";
+    ShiftX = 0;
     ShiftY = 0;
   }
   virtual ~Node(){}
@@ -31,6 +32,11 @@ struct Node{
   void SetAnchorPosition(double x, double y){
     AnchorX = x;
     AnchorY = y;
+  }
+
+  void Shift(double x, double y){
+    ShiftX = x;
+    ShiftY = y;
   }
 
   virtual TString NodeText(){
@@ -41,7 +47,7 @@ struct Node{
     Options.push_back(Form("anchor=%s",Anchor.Data()));
     TString OptionsWithCommas;
     for( TString Option:Options ) OptionsWithCommas.Append(Form("%s, ",Option.Data()));
-    return Form("\\node[%sdraw] at (axis cs: %f,%f){};",OptionsWithCommas.Data(),AnchorX,AnchorY);
+    return Form("\\node[%s%s] at (axis cs: %f,%f){%s};",OptionsWithCommas.Data(),IncludeDraw?"draw":"",AnchorX,AnchorY,Text.Data());
   }
 };
 
@@ -51,7 +57,9 @@ struct Marker : public Node{
     TString Shape;
     double StarRatio;
 
-    Marker(){
+    Marker(double x = 0, double y = 0){
+        AnchorX = x;
+        AnchorY = y;
         StarRatio = 2.618034;
         OutlineColor="black";
         FillColor = "blue";
@@ -76,7 +84,9 @@ struct Box : public Node{
     TString Shape;
   public:
     double Width, Height;
-    Box(){
+    Box(double x = 0, double y = 0){
+      AnchorX = x;
+      AnchorY = y;
       Shape="rectangle";
       FillColor="white";
       Width = 10; //mm
@@ -89,6 +99,17 @@ struct Box : public Node{
       Options.push_back(Form("minimum height=%fmm",Height));
       return Node::NodeText();
     }
+};
+
+struct TextBox : public Node{
+  TextBox(double x = 0, double y = 0){
+    AnchorX = x;
+    AnchorY = y;
+    IncludeDraw = false;
+  }
+  void DrawBorder(bool yn){
+    IncludeDraw = yn;
+  }
 };
 
 struct ErrorBar{
@@ -450,12 +471,21 @@ void DrawInfoText(PgfCanvas &can, TString Energy, TString PtRapidityCentrality, 
 }
 
 void DrawLambdaPointLegend(PgfCanvas &can, double x, double y){
-  Box * Background = new Box(); 
-  Background->SetAnchorPosition(x,y);
+  double XShift = 2.5, TitleYShift = 0;
+  Box * Background = new Box(x,y); 
   can.AddNode(Background);
-  // can.Nodes[can.ActivePadX][can.ActivePadY].push_back(Background);
-  can.AddNode(Form("\\node[anchor=center,align = center, xshift=-2.5mm, yshift=2.5mm] at (axis cs: %f,%f){$\\Lambda$};",x,y));
-  can.AddNode(Form("\\node[anchor=center,align = center, xshift= 2.5mm, yshift=2.5mm] at (axis cs: %f,%f){$\\bar{\\Lambda}$};",x,y));
+  TextBox * LambdaTitle = new TextBox(x,y);
+  LambdaTitle->Text = "$\\Lambda$";
+  LambdaTitle->Shift(-XShift,TitleYShift);
+  LambdaTitle->Anchor = "south";
+  can.AddNode(LambdaTitle);
+  TextBox * LamBarTitle = new TextBox(x,y);
+  LamBarTitle->Text = "$\\bar{\\Lambda}$";
+  LamBarTitle->Shift(XShift,TitleYShift);
+  LamBarTitle->Anchor = "south";
+  can.AddNode(LamBarTitle);
+  // can.AddNode(Form("\\node[anchor=center,align = center, xshift=-2.5mm, yshift=2.5mm] at (axis cs: %f,%f){$\\Lambda$};",x,y));
+  // can.AddNode(Form("\\node[anchor=center,align = center, xshift= 2.5mm, yshift=2.5mm] at (axis cs: %f,%f){$\\bar{\\Lambda}$};",x,y));
   can.AddNode(Form("\\node[color=black, fill=LambdaFillColor, line width=0.150000mm, star, minimum size=3.000000mm, inner sep=0pt, star point ratio = \\PerfectStarRadiusRatio, xshift=-2.5mm, yshift=-2.5mm, draw] at (axis cs: %f,%f){};",x,y));
   can.AddNode(Form("\\node[color=black, fill=LamBarFillColor, line width=0.150000mm, star, minimum size=3.000000mm, inner sep=0pt, star point ratio = \\PerfectStarRadiusRatio, xshift= 2.5mm, yshift=-2.5mm, draw] at (axis cs: %f,%f){};",x,y));
 	can.AddNode(Form("\\node[color=LamBarInnerFillColor, fill=LamBarInnerFillColor, line width=0.000000mm, star, minimum size=0.750000mm, inner sep=0pt, star point ratio = \\PerfectStarRadiusRatio, xshift= 2.5mm, yshift=-2.5mm, draw] at (axis cs: %f,%f){};",x,y));
