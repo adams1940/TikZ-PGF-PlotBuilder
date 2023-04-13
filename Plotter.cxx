@@ -12,28 +12,48 @@ struct Axis{
     virtual ~Axis(){};
 }; // Axis
 
-struct Marker{
-    TString OutlineColor, FillColor;
-    double Size, OutlineWidthScale;
-    TString Shape;
-    vector<TString> AdditionalNodeOptions;
+struct Node{
+  TString OutlineColor, FillColor;
+  vector<TString> Options;
+  // double x,y;
+  
+  // Node(double x = 0, double y = 0):x(x),y(y){}
+  Node(){}
+  virtual ~Node(){}
 
-    Marker(){
-        OutlineColor="black";
-        FillColor = "blue";
-        Size = 3; // mm
-        OutlineWidthScale = 0.05;
-        Shape = "circle";
-    }
-    virtual ~Marker(){}
+  TString NodeText(double x, double y){
+    if( OutlineColor!="" ) Options.push_back(Form("color=%s",OutlineColor.Data()));
+    if( FillColor!="" ) Options.push_back(Form("fill=%s",FillColor.Data()));
+    TString OptionsWithCommas;
+    for( TString Option:Options ) OptionsWithCommas.Append(Form("%s, ",Option.Data()));
+    return Form("\\node[%sdraw] at (axis cs: %f,%f){};",OptionsWithCommas.Data(),x,y);
+  }
+};
 
-    TString Node(double x, double y){
-        TString Options = Form("color=%s, fill=%s, line width=%fmm, %s, minimum size=%fmm, inner sep=0pt",OutlineColor.Data(),FillColor.Data(),OutlineWidthScale*Size,Shape.Data(),Size);
-        if( Shape=="star" ) Options.Append(", star point ratio = \\PerfectStarRadiusRatio");
-        for( TString Option:AdditionalNodeOptions ) Options.Append(Form(", %s",Option.Data()));
-        return Form("\\node[%s, draw] at (axis cs: %f,%f){};",Options.Data(),x,y);
-    }
-}; // Marker
+struct Marker:Node{
+  double Size, OutlineWidthScale;
+  TString Shape;
+  double StarRatio = 2.618034;
+
+  Marker(){
+      OutlineColor="black";
+      FillColor = "blue";
+      Size = 3; // mm
+      OutlineWidthScale = 0.05;
+      Shape = "circle";
+  }
+  virtual ~Marker(){}
+
+  TString NodeText(double x, double y){
+    // if new, Marker-specific members or Options are introduced, then do Options.push_back() and return Node::NodeText();
+    Options.push_back("inner sep=0pt");
+    Options.push_back(Form("minimum size=%fmm",Size));
+    Options.push_back(Form("line width=%fmm",OutlineWidthScale*Size));
+    Options.push_back(Shape.Data());
+    if( Shape=="star" ) Options.push_back(Form("star point ratio=%f",StarRatio));
+    return Node::NodeText(x,y);
+  }
+};
 
 struct ErrorBar{
     double Width;
@@ -67,7 +87,7 @@ public:
         LineColor = "blue";
     }    
     TString MarkerNode(int iPoint){
-        return MarkerStyle.Node(this->GetPointX(iPoint),this->GetPointY(iPoint));
+        return MarkerStyle.NodeText(this->GetPointX(iPoint),this->GetPointY(iPoint));
     }
 }; // Graph
 
@@ -387,7 +407,6 @@ void DrawInfoText(PgfCanvas &can, TString Energy, TString PtRapidityCentrality, 
 
 void DrawLambdaPointLegend(PgfCanvas &can, double x, double y){
   can.AddNode(Form("\\node[draw, shape=rectangle, minimum width=1cm, minimum height=1cm, anchor=center,fill={rgb:black,1;white,3}] at (%f,%f) {};",x,y));
-  can.AddNode(Form("\\node[draw, shape=rectangle, minimum width=1cm, minimum height=1cm, anchor=center,fill={rgb:black,1;white,3}] at (%f,%f) {};",x,y));
   can.AddNode(Form("\\node[anchor=center,align = center, xshift=-2.5mm, yshift=2.5mm] at (axis cs: %f,%f){$\\Lambda$};",x,y));
   can.AddNode(Form("\\node[anchor=center,align = center, xshift= 2.5mm, yshift=2.5mm] at (axis cs: %f,%f){$\\bar{\\Lambda}$};",x,y));
   can.AddNode(Form("\\node[color=black, fill=LambdaFillColor, line width=0.150000mm, star, minimum size=3.000000mm, inner sep=0pt, star point ratio = \\PerfectStarRadiusRatio, xshift=-2.5mm, yshift=-2.5mm, draw] at (axis cs: %f,%f){};",x,y));
@@ -492,4 +511,38 @@ void Plotter(TString OutputFileCommitHash = "test"){
     DrawData(LamBarStatGraph27GeVRapidity,LamBarSystGraph27GeVRapidity,RapidityCanvas,false);
     DrawInfoText(RapidityCanvas,"27","20-50\\% Centrality, $p_{\\mathrm{T}}>0.5$~GeV/$c$",0,0.05);
     MyTexFile.AddCanvas(RapidityCanvas);
+
+    double Res19GeV[] = {0.2048, 0.371, 0.4768, 0.5418, 0.5773, 0.5924, 0.5932, 0.5826, 0.563, 0.5343, 0.495, 0.4474, 0.399, 0.3499, 0.3015, 0.2599};
+    double Res27GeV[] = {0.1836, 0.3332, 0.4194, 0.4685, 0.4935, 0.5003, 0.4987, 0.4851, 0.4685, 0.4436, 0.4134, 0.3801, 0.3431, 0.3038, 0.2645, 0.2161};
+    TFile ResolutionFile19GeV(Form("/home/joseph/Documents/Coding/OSUResearch/LambdaPolarizationAnalyses/Local/19GeV/Output/Histograms/%s/%s.Psi1Histograms.root",LambdaCommitHash19GeVCentrality.Data(),LambdaCommitHash19GeVCentrality.Data()));
+    TFile ResolutionFile27GeV(Form("/home/joseph/Documents/Coding/OSUResearch/LambdaPolarizationAnalyses/Local/27GeV/Output/Histograms/%s/%s.Psi1Histograms.root",LambdaCommitHash27GeVCentrality.Data(),LambdaCommitHash27GeVCentrality.Data()));
+    Graph Resolution19GeV = ConvertTh1ToGraph( *((TH1D*)ResolutionFile19GeV.Get("Centrality_Resolution_FullEpd")) );
+    Graph Resolution27GeV = ConvertTh1ToGraph( *((TH1D*)ResolutionFile27GeV.Get("Centrality_Resolution_FullEpd")) );
+    for( int i=0; i<Resolution19GeV.GetN(); i++ ) Resolution19GeV.SetPointY(i,Res19GeV[i]);
+    for( int i=0; i<Resolution27GeV.GetN(); i++ ) Resolution27GeV.SetPointY(i,Res27GeV[i]);
+    PgfCanvas ResolutionCanvas(1,1);
+    ResolutionCanvas.SetXYTitles("\\mathrm{Centrality}~(\\%)","R_{\\mathrm{EP}}^{(1)}");
+    ResolutionCanvas.SetXRange(-5,85);
+    ResolutionCanvas.SetYRange(0,0.65);
+    Resolution19GeV.MarkerStyle.Shape = "circle";
+    Resolution19GeV.MarkerStyle.Size = 2;
+    Resolution19GeV.MarkerStyle.FillColor = "blue";
+    Resolution27GeV.MarkerStyle.Shape = "circle";
+    Resolution27GeV.MarkerStyle.Size = 2;
+    Resolution27GeV.MarkerStyle.FillColor = "red";
+    ResolutionCanvas.AddGraph(Resolution19GeV);
+    ResolutionCanvas.AddGraph(Resolution27GeV);
+    double ResolutionLegendX = 25, ResolutionLegendY = 0.25;
+    TString TitleYShift = "5mm";
+    TString LegendMarkerXShift = "-8mm";
+    TString LegendLabelXShift = "-5mm";
+    TString LegendFirstRowYShift = "0mm";
+    TString LegendSecndRowYShift = "-5mm";
+    ResolutionCanvas.AddNode(Form("\\node[draw, shape=rectangle, minimum width=25mm, minimum height=15mm, anchor=center,fill={rgb:black,0;white,3}] at (axis cs: %f,%f) {};",ResolutionLegendX,ResolutionLegendY));
+    ResolutionCanvas.AddNode(Form("\\node[anchor=center,align = center, yshift=%s] at (axis cs: %f,%f){$\\sNN$};",TitleYShift.Data(),ResolutionLegendX,ResolutionLegendY));
+	  ResolutionCanvas.AddNode(Form("\\node[color=black, fill=red, line width=0.100000mm, circle, minimum size=2.000000mm, inner sep=0pt, xshift = %s, yshift = %s, draw] at (axis cs: %f,%f){};",LegendMarkerXShift.Data(),LegendFirstRowYShift.Data(),ResolutionLegendX,ResolutionLegendY));
+	  ResolutionCanvas.AddNode(Form("\\node[color=black, fill=blue, line width=0.100000mm, circle, minimum size=2.000000mm, inner sep=0pt, xshift = %s, yshift = %s, draw] at (axis cs: %f,%f){};",LegendMarkerXShift.Data(),LegendSecndRowYShift.Data(),ResolutionLegendX,ResolutionLegendY));
+    ResolutionCanvas.AddNode(Form("\\node[anchor=west,align = center, xshift=%s, yshift=%s] at (axis cs: %f,%f){19.6~GeV};",LegendLabelXShift.Data(),LegendFirstRowYShift.Data(),ResolutionLegendX,ResolutionLegendY));
+    ResolutionCanvas.AddNode(Form("\\node[anchor=west,align = center, xshift=%s, yshift=%s] at (axis cs: %f,%f){27~GeV};",LegendLabelXShift.Data(),LegendSecndRowYShift.Data(),ResolutionLegendX,ResolutionLegendY));
+    MyTexFile.AddCanvas(ResolutionCanvas);
 }
