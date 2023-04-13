@@ -15,44 +15,80 @@ struct Axis{
 struct Node{
   TString OutlineColor, FillColor;
   vector<TString> Options;
-  // double x,y;
+  TString Anchor;
+  double AnchorX, AnchorY;
+  double ShiftX, ShiftY;
   
-  // Node(double x = 0, double y = 0):x(x),y(y){}
-  Node(){}
+  Node(){
+    Anchor = "center";
+    AnchorX = 0; // axis cx
+    AnchorY = 0;
+    ShiftX = 0; // mm
+    ShiftY = 0;
+  }
   virtual ~Node(){}
 
-  TString NodeText(double x, double y){
+  void SetAnchorPosition(double x, double y){
+    AnchorX = x;
+    AnchorY = y;
+  }
+
+  virtual TString NodeText(){
     if( OutlineColor!="" ) Options.push_back(Form("color=%s",OutlineColor.Data()));
     if( FillColor!="" ) Options.push_back(Form("fill=%s",FillColor.Data()));
+    if( ShiftX!=0 ) Options.push_back(Form("xshift=%fmm",ShiftX));
+    if( ShiftY!=0 ) Options.push_back(Form("yshift=%fmm",ShiftY));
+    Options.push_back(Form("anchor=%s",Anchor.Data()));
     TString OptionsWithCommas;
     for( TString Option:Options ) OptionsWithCommas.Append(Form("%s, ",Option.Data()));
-    return Form("\\node[%sdraw] at (axis cs: %f,%f){};",OptionsWithCommas.Data(),x,y);
+    return Form("\\node[%sdraw] at (axis cs: %f,%f){};",OptionsWithCommas.Data(),AnchorX,AnchorY);
   }
 };
 
-struct Marker:Node{
-  double Size, OutlineWidthScale;
-  TString Shape;
-  double StarRatio = 2.618034;
+struct Marker : public Node{
+  public:
+    double Size, OutlineWidthScale;
+    TString Shape;
+    double StarRatio;
 
-  Marker(){
-      OutlineColor="black";
-      FillColor = "blue";
-      Size = 3; // mm
-      OutlineWidthScale = 0.05;
-      Shape = "circle";
-  }
-  virtual ~Marker(){}
+    Marker(){
+        StarRatio = 2.618034;
+        OutlineColor="black";
+        FillColor = "blue";
+        Size = 3; // mm
+        OutlineWidthScale = 0.05;
+        Shape = "circle";
+    }
+    virtual ~Marker(){}
 
-  TString NodeText(double x, double y){
-    // if new, Marker-specific members or Options are introduced, then do Options.push_back() and return Node::NodeText();
-    Options.push_back("inner sep=0pt");
-    Options.push_back(Form("minimum size=%fmm",Size));
-    Options.push_back(Form("line width=%fmm",OutlineWidthScale*Size));
-    Options.push_back(Shape.Data());
-    if( Shape=="star" ) Options.push_back(Form("star point ratio=%f",StarRatio));
-    return Node::NodeText(x,y);
-  }
+    TString NodeText(){
+      Options.push_back("inner sep=0pt");
+      Options.push_back(Form("minimum size=%fmm",Size));
+      Options.push_back(Form("line width=%fmm",OutlineWidthScale*Size));
+      Options.push_back(Shape.Data());
+      if( Shape=="star" ) Options.push_back(Form("star point ratio=%f",StarRatio));
+      return Node::NodeText();
+    }
+};
+
+struct Box : public Node{
+  private:
+    TString Shape;
+  public:
+    double Width, Height;
+    Box(){
+      Shape="rectangle";
+      FillColor="white";
+      Width = 10; //mm
+      Height = 10;
+    }
+    virtual ~Box(){}
+
+    TString NodeText(){
+      Options.push_back(Form("minimum width=%fmm",Width));
+      Options.push_back(Form("minimum height=%fmm",Height));
+      return Node::NodeText();
+    }
 };
 
 struct ErrorBar{
@@ -87,20 +123,22 @@ public:
         LineColor = "blue";
     }    
     TString MarkerNode(int iPoint){
-        return MarkerStyle.NodeText(this->GetPointX(iPoint),this->GetPointY(iPoint));
+        MarkerStyle.SetAnchorPosition(this->GetPointX(iPoint),this->GetPointY(iPoint));
+        return MarkerStyle.NodeText();
     }
 }; // Graph
 
 class PgfCanvas{
 private:
-    int ActivePadX, ActivePadY;
 
 public:
+    int ActivePadX, ActivePadY;
     int NumDivisionsX, NumDivisionsY;
     double Width, Height; // mm
     vector<Axis> XAxes, YAxes;
     vector<Graph> Graphs[10][10]; // Ideally would be [NumDivisionsX][NumDivisionsY]
     vector<TString> AdditionalNodes[10][10]; // Ideally would be [NumDivisionsX][NumDivisionsY]
+    vector<Node*> Nodes[10][10]; // Ideally would be [NumDivisionsX][NumDivisionsY]
     vector<vector<bool>> DrawZeroLinesVector;
     vector<vector<TString>> Texts;
     vector<vector<pair<double,double>>> TextPositions;
@@ -171,6 +209,10 @@ public:
 
     void AddNode(TString Text){
       AdditionalNodes[ActivePadX][ActivePadY].push_back(Text);
+    }
+
+    void AddNode(Node * node){
+      Nodes[ActivePadX][ActivePadY].push_back(node);
     }
 
 }; // PgfCanvas
@@ -294,6 +336,8 @@ public:
 
                 if( Canvas.DrawZeroLinesVector[ColumnX][ColumnY] ) AddPictureLine(Form("\\addplot[color=gray, forget plot, /tikz/densely dotted, ] coordinates{(%f,0)(%f,0)};",Canvas.XAxes[ColumnX].Min,Canvas.XAxes[ColumnX].Max));
 
+                for( Node * node:Canvas.Nodes[ColumnX][ColumnY] ) AddPictureLine(node->NodeText());
+
                 for( TString Node:Canvas.AdditionalNodes[ColumnX][ColumnY] ) AddPictureLine(Node.Data());
 
                 if( Canvas.Texts[ColumnX][ColumnY]!="" ) AddPictureLine(Form("\\node [anchor=center, align=center] at (axis cs: %f,%f){%s};",Canvas.TextPositions[ColumnX][ColumnY].first,Canvas.TextPositions[ColumnX][ColumnY].second,Canvas.Texts[ColumnX][ColumnY].Data()));
@@ -406,7 +450,10 @@ void DrawInfoText(PgfCanvas &can, TString Energy, TString PtRapidityCentrality, 
 }
 
 void DrawLambdaPointLegend(PgfCanvas &can, double x, double y){
-  can.AddNode(Form("\\node[draw, shape=rectangle, minimum width=1cm, minimum height=1cm, anchor=center,fill={rgb:black,1;white,3}] at (%f,%f) {};",x,y));
+  Box * Background = new Box(); 
+  Background->SetAnchorPosition(x,y);
+  can.AddNode(Background);
+  // can.Nodes[can.ActivePadX][can.ActivePadY].push_back(Background);
   can.AddNode(Form("\\node[anchor=center,align = center, xshift=-2.5mm, yshift=2.5mm] at (axis cs: %f,%f){$\\Lambda$};",x,y));
   can.AddNode(Form("\\node[anchor=center,align = center, xshift= 2.5mm, yshift=2.5mm] at (axis cs: %f,%f){$\\bar{\\Lambda}$};",x,y));
   can.AddNode(Form("\\node[color=black, fill=LambdaFillColor, line width=0.150000mm, star, minimum size=3.000000mm, inner sep=0pt, star point ratio = \\PerfectStarRadiusRatio, xshift=-2.5mm, yshift=-2.5mm, draw] at (axis cs: %f,%f){};",x,y));
