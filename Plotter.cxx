@@ -1,3 +1,5 @@
+class PgfCanvas;
+class TexFile;
 double EnergyShift = 0.03;
 
 pair<double, double> OffsetsOnLogScale(double Value, double RelativeOffset){
@@ -278,8 +280,10 @@ public:
       Nodes[ActivePadX][ActivePadY].push_back(node);
     }
 
-    void AddZoomInset(PgfCanvas &can){
-    }
+    // void AddZoomInset(PgfCanvas &can){
+    //   TexFile ZoomInsetFile(Form("temp_ZoomInset_X%iY%i",ActivePadX,ActivePadY));
+    //   ZoomInsetFile.AddCanvas(can);
+    // }
 }; // PgfCanvas
 
 class TexFile{
@@ -291,6 +295,7 @@ public:
     ofstream File;
 
     TexFile(TString Name):FileName(Name){
+        gSystem->Exec(Form("mkdir -p Output/%s",Name.Data()));
         File.open(Form("Output/%s/%s.tex",Name.Data(),Name.Data()));
         File<<"\\documentclass[class=article,10pt,border=1pt]{standalone}\n";
         File<<"\\usepackage[utf8]{inputenc}\n";
@@ -748,7 +753,6 @@ void Plotter(TString OutputFileCommitHash = "test"){
     {5020,  AlphaChangeFactor*-0.14,   AlphaChangeFactor*0.12,   AlphaChangeFactor*0.06,   AlphaChangeFactor*0.06  },
   };
 
-    gSystem->Exec(Form("mkdir -p Output/%s",OutputFileCommitHash.Data()));
     TexFile MyTexFile(OutputFileCommitHash);
 
     PgfCanvas CentralityCanvas(1,2);
@@ -826,7 +830,9 @@ void Plotter(TString OutputFileCommitHash = "test"){
       SplittingFigureTools::DrawBesILamBar(StarBesILamBarStat,StarBesILamBarSyst);
       SplittingFigureTools::DrawBesIILambda(StarBesIILambdaStat,StarBesIILambdaSyst);
       SplittingFigureTools::DrawBesIILamBar(StarBesIILamBarStat,StarBesIILamBarSyst);
-      EnergyCanvas.AddZoomInset(EnergyCanvasTopPanelZoom);
+      // EnergyCanvas.AddZoomInset(EnergyCanvasTopPanelZoom);
+      TexFile ZoomInsetFile("temp_ZoomInset_Top");
+      ZoomInsetFile.AddCanvas(EnergyCanvasTopPanelZoom);
     EnergyCanvas.SetLogX();
     EnergyCanvas.SetXRanges(1.5,9000);
     EnergyCanvas.cd(0,0);
