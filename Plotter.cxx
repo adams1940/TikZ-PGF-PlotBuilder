@@ -404,7 +404,7 @@ public:
 namespace SplittingFigureTools{
   Marker LambdaMarkerStyle, LamBarMarkerStyle, LamBarInnerMarkerStyle;
   PgfCanvas * can;
-  // SplittingFigure(){
+
   void SetMarkerStyles(){
     LambdaMarkerStyle.Shape = "star";
     LambdaMarkerStyle.FillColor = "LambdaFillColor";
@@ -420,18 +420,6 @@ namespace SplittingFigureTools{
   void SetCanvas(PgfCanvas &c){
     can = &c;
   }
-
-  // void DrawLambdaStatPoints(Graph &gr){
-  //   if( gr.GetN()>0 ) gr.MovePoints(-gr.GetErrorX(0)/10.,0);
-  //   gr.AddMarkerStyle(LambdaMarkerStyle);
-  //   can->AddGraph(gr);
-  // }
-
-  // void DrawLamBarStatPoints(Graph &gr){
-  //   if( gr.GetN()>0 ) gr.MovePoints(gr.GetErrorX(0)/10.,0);
-  //   gr.MarkerStyle = LambdaMarkerStyle;
-  //   can->AddGraph(gr);
-  // }
 
   void DrawData(Graph &StatGraph, Graph &SystGraph, bool IsLambda){
     int ProtonCharge;
@@ -499,7 +487,34 @@ namespace SplittingFigureTools{
     LamBarInnerLegendMarker->Shift(XShift,MarkerYShift);
     can->AddNode(LamBarInnerLegendMarker);
   }
-};
+}; // SplittingFigureTools
+
+struct Legend{
+  TString ColumnLabels[10], RowLabels[10];
+  TString Title;
+  Graph Graphs[10][10];
+  int NumColumns, NumRows;
+  double ColumnShifts[10], RowShifts[10];
+
+  Legend(){}
+  virtual ~Legend(){}
+
+  void SetColumnLabel(int iColumn, TString Label){
+    ColumnLabels[iColumn] = Label;
+  }
+  void SetRowLabel(int iRow, TString Label){
+    RowLabels[iRow] = Label;
+  }
+  void SetColumnShiftX(int iColumn, double shift){
+    ColumnShifts[iColumn] = shift;
+  }
+  void SetRowShiftX(int iRow, double shift){
+    RowShifts[iRow] = shift;
+  }
+  void AddEntry(int iColumn, int iRow, Graph &gr){
+    Graphs[iColumn][iRow] = gr;
+  }
+}; // Legend
 
   Graph ConvertTh1ToGraph(const TH1 &Hist){
       int NumBins = Hist.GetNbinsX();
@@ -621,37 +636,40 @@ void Plotter(TString OutputFileCommitHash = "test"){
     SplittingFigureTools::DrawInfoText("27","20-50\\% Centrality, $p_{\\mathrm{T}}>0.5$~GeV/$c$",0,0.05);
     MyTexFile.AddCanvas(RapidityCanvas);
 
-    // double Res19GeV[] = {0.2048, 0.371, 0.4768, 0.5418, 0.5773, 0.5924, 0.5932, 0.5826, 0.563, 0.5343, 0.495, 0.4474, 0.399, 0.3499, 0.3015, 0.2599};
-    // double Res27GeV[] = {0.1836, 0.3332, 0.4194, 0.4685, 0.4935, 0.5003, 0.4987, 0.4851, 0.4685, 0.4436, 0.4134, 0.3801, 0.3431, 0.3038, 0.2645, 0.2161};
-    // TFile ResolutionFile19GeV(Form("/home/joseph/Documents/Coding/OSUResearch/LambdaPolarizationAnalyses/Local/19GeV/Output/Histograms/%s/%s.Psi1Histograms.root",LambdaCommitHash19GeVCentrality.Data(),LambdaCommitHash19GeVCentrality.Data()));
-    // TFile ResolutionFile27GeV(Form("/home/joseph/Documents/Coding/OSUResearch/LambdaPolarizationAnalyses/Local/27GeV/Output/Histograms/%s/%s.Psi1Histograms.root",LambdaCommitHash27GeVCentrality.Data(),LambdaCommitHash27GeVCentrality.Data()));
-    // Graph Resolution19GeV = ConvertTh1ToGraph( *((TH1D*)ResolutionFile19GeV.Get("Centrality_Resolution_FullEpd")) );
-    // Graph Resolution27GeV = ConvertTh1ToGraph( *((TH1D*)ResolutionFile27GeV.Get("Centrality_Resolution_FullEpd")) );
-    // for( int i=0; i<Resolution19GeV.GetN(); i++ ) Resolution19GeV.SetPointY(i,Res19GeV[i]);
-    // for( int i=0; i<Resolution27GeV.GetN(); i++ ) Resolution27GeV.SetPointY(i,Res27GeV[i]);
-    // PgfCanvas ResolutionCanvas(1,1);
-    // ResolutionCanvas.SetXYTitles("\\mathrm{Centrality}~(\\%)","R_{\\mathrm{EP}}^{(1)}");
-    // ResolutionCanvas.SetXRange(-5,85);
-    // ResolutionCanvas.SetYRange(0,0.65);
-    // Resolution19GeV.MarkerStyle.Shape = "circle";
-    // Resolution19GeV.MarkerStyle.Size = 2;
-    // Resolution19GeV.MarkerStyle.FillColor = "blue";
-    // Resolution27GeV.MarkerStyle.Shape = "circle";
-    // Resolution27GeV.MarkerStyle.Size = 2;
-    // Resolution27GeV.MarkerStyle.FillColor = "red";
-    // ResolutionCanvas.AddGraph(Resolution19GeV);
-    // ResolutionCanvas.AddGraph(Resolution27GeV);
-    // double ResolutionLegendX = 25, ResolutionLegendY = 0.25;
-    // TString TitleYShift = "5mm";
-    // TString LegendMarkerXShift = "-8mm";
-    // TString LegendLabelXShift = "-5mm";
-    // TString LegendFirstRowYShift = "0mm";
-    // TString LegendSecndRowYShift = "-5mm";
-    // ResolutionCanvas.AddNode(Form("\\node[draw, shape=rectangle, minimum width=25mm, minimum height=15mm, anchor=center,fill={rgb:black,0;white,3}] at (axis cs: %f,%f) {};",ResolutionLegendX,ResolutionLegendY));
-    // ResolutionCanvas.AddNode(Form("\\node[anchor=center,align = center, yshift=%s] at (axis cs: %f,%f){$\\sNN$};",TitleYShift.Data(),ResolutionLegendX,ResolutionLegendY));
-	  // ResolutionCanvas.AddNode(Form("\\node[color=black, fill=red, line width=0.100000mm, circle, minimum size=2.000000mm, inner sep=0pt, xshift = %s, yshift = %s, draw] at (axis cs: %f,%f){};",LegendMarkerXShift.Data(),LegendFirstRowYShift.Data(),ResolutionLegendX,ResolutionLegendY));
-	  // ResolutionCanvas.AddNode(Form("\\node[color=black, fill=blue, line width=0.100000mm, circle, minimum size=2.000000mm, inner sep=0pt, xshift = %s, yshift = %s, draw] at (axis cs: %f,%f){};",LegendMarkerXShift.Data(),LegendSecndRowYShift.Data(),ResolutionLegendX,ResolutionLegendY));
-    // ResolutionCanvas.AddNode(Form("\\node[anchor=west,align = center, xshift=%s, yshift=%s] at (axis cs: %f,%f){19.6~GeV};",LegendLabelXShift.Data(),LegendFirstRowYShift.Data(),ResolutionLegendX,ResolutionLegendY));
-    // ResolutionCanvas.AddNode(Form("\\node[anchor=west,align = center, xshift=%s, yshift=%s] at (axis cs: %f,%f){27~GeV};",LegendLabelXShift.Data(),LegendSecndRowYShift.Data(),ResolutionLegendX,ResolutionLegendY));
-    // MyTexFile.AddCanvas(ResolutionCanvas);
+    double Res19GeV[] = {0.2048, 0.371, 0.4768, 0.5418, 0.5773, 0.5924, 0.5932, 0.5826, 0.563, 0.5343, 0.495, 0.4474, 0.399, 0.3499, 0.3015, 0.2599};
+    double Res27GeV[] = {0.1836, 0.3332, 0.4194, 0.4685, 0.4935, 0.5003, 0.4987, 0.4851, 0.4685, 0.4436, 0.4134, 0.3801, 0.3431, 0.3038, 0.2645, 0.2161};
+    TFile ResolutionFile19GeV(Form("/home/joseph/Documents/Coding/OSUResearch/LambdaPolarizationAnalyses/Local/19GeV/Output/Histograms/%s/%s.Psi1Histograms.root",LambdaCommitHash19GeVCentrality.Data(),LambdaCommitHash19GeVCentrality.Data()));
+    TFile ResolutionFile27GeV(Form("/home/joseph/Documents/Coding/OSUResearch/LambdaPolarizationAnalyses/Local/27GeV/Output/Histograms/%s/%s.Psi1Histograms.root",LambdaCommitHash27GeVCentrality.Data(),LambdaCommitHash27GeVCentrality.Data()));
+    Graph Resolution19GeV = ConvertTh1ToGraph( *((TH1D*)ResolutionFile19GeV.Get("Centrality_Resolution_FullEpd")) );
+    Graph Resolution27GeV = ConvertTh1ToGraph( *((TH1D*)ResolutionFile27GeV.Get("Centrality_Resolution_FullEpd")) );
+    for( int i=0; i<Resolution19GeV.GetN(); i++ ) Resolution19GeV.SetPointY(i,Res19GeV[i]);
+    for( int i=0; i<Resolution27GeV.GetN(); i++ ) Resolution27GeV.SetPointY(i,Res27GeV[i]);
+    PgfCanvas ResolutionCanvas(1,1);
+    ResolutionCanvas.SetXYTitles("\\mathrm{Centrality}~(\\%)","R_{\\mathrm{EP}}^{(1)}");
+    ResolutionCanvas.SetXRange(-5,85);
+    ResolutionCanvas.SetYRange(0,0.65);
+    Marker Resolution19GeVMarkerStyle, Resolution27GeVMarkerStyle;
+    Resolution19GeVMarkerStyle.Shape = "circle";
+    Resolution19GeVMarkerStyle.Size = 2;
+    Resolution19GeVMarkerStyle.FillColor = "blue";
+    Resolution27GeVMarkerStyle.Shape = "circle";
+    Resolution27GeVMarkerStyle.Size = 2;
+    Resolution27GeVMarkerStyle.FillColor = "red";
+    Resolution19GeV.AddMarkerStyle(Resolution19GeVMarkerStyle);
+    Resolution27GeV.AddMarkerStyle(Resolution27GeVMarkerStyle);
+    ResolutionCanvas.AddGraph(Resolution19GeV);
+    ResolutionCanvas.AddGraph(Resolution27GeV);
+    double ResolutionLegendX = 25, ResolutionLegendY = 0.25;
+    TString TitleYShift = "5mm";
+    TString LegendMarkerXShift = "-8mm";
+    TString LegendLabelXShift = "-5mm";
+    TString LegendFirstRowYShift = "0mm";
+    TString LegendSecndRowYShift = "-5mm";
+    ResolutionCanvas.AddNode(Form("\\node[draw, shape=rectangle, minimum width=25mm, minimum height=15mm, anchor=center,fill={rgb:black,0;white,3}] at (axis cs: %f,%f) {};",ResolutionLegendX,ResolutionLegendY));
+    ResolutionCanvas.AddNode(Form("\\node[anchor=center,align = center, yshift=%s] at (axis cs: %f,%f){$\\sNN$};",TitleYShift.Data(),ResolutionLegendX,ResolutionLegendY));
+	  ResolutionCanvas.AddNode(Form("\\node[color=black, fill=red, line width=0.100000mm, circle, minimum size=2.000000mm, inner sep=0pt, xshift = %s, yshift = %s, draw] at (axis cs: %f,%f){};",LegendMarkerXShift.Data(),LegendFirstRowYShift.Data(),ResolutionLegendX,ResolutionLegendY));
+	  ResolutionCanvas.AddNode(Form("\\node[color=black, fill=blue, line width=0.100000mm, circle, minimum size=2.000000mm, inner sep=0pt, xshift = %s, yshift = %s, draw] at (axis cs: %f,%f){};",LegendMarkerXShift.Data(),LegendSecndRowYShift.Data(),ResolutionLegendX,ResolutionLegendY));
+    ResolutionCanvas.AddNode(Form("\\node[anchor=west,align = center, xshift=%s, yshift=%s] at (axis cs: %f,%f){19.6~GeV};",LegendLabelXShift.Data(),LegendFirstRowYShift.Data(),ResolutionLegendX,ResolutionLegendY));
+    ResolutionCanvas.AddNode(Form("\\node[anchor=west,align = center, xshift=%s, yshift=%s] at (axis cs: %f,%f){27~GeV};",LegendLabelXShift.Data(),LegendSecndRowYShift.Data(),ResolutionLegendX,ResolutionLegendY));
+    MyTexFile.AddCanvas(ResolutionCanvas);
 }
