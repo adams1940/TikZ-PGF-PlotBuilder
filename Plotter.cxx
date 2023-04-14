@@ -1,13 +1,22 @@
+double EnergyShift = 0.03;
+
+pair<double, double> OffsetsOnLogScale(double Value, double RelativeOffset){
+  pair<double, double> Offsets(RelativeOffset*exp(2.*log(Value)-log(RelativeOffset*Value+Value)),Value*RelativeOffset);
+  return Offsets;
+} // OffsetsOnLogScale
+
 struct Axis{
     double Min, Max;
     int NumMinorTicks;
     vector<double> CustomMajorTicks, CustomMinorTicks;
     TString Title, TitleSize;
+    bool IsLog;
     Axis(){
         NumMinorTicks = 4;
         Min = 0;
         Max = 1;
         TitleSize = "\\large";
+        IsLog = false;
     }
     virtual ~Axis(){};
 }; // Axis
@@ -136,6 +145,8 @@ public:
     bool OnlyDrawLines;
     double LineWidth;
     TString LineColor;
+    double XShiftDistance, YShiftDistance;
+    TGraphAsymmErrors SystematicErrorGraph;
 
     Graph(){
         DrawXError = true;
@@ -144,6 +155,8 @@ public:
         OnlyDrawLines = false;
         LineWidth = 0.2; // mm
         LineColor = "blue";
+        XShiftDistance = 0;
+        YShiftDistance = 0;
     }    
     virtual ~Graph(){}
 
@@ -155,6 +168,8 @@ public:
       vector<Marker> Nodes;
       for( Marker MarkerStyle:MarkerStyles ){
         for( int iPoint=0; iPoint<this->GetN(); iPoint++ ){
+          if( XShiftDistance!=0 ) MarkerStyle.ShiftX = XShiftDistance;
+          if( YShiftDistance!=0 ) MarkerStyle.ShiftY = YShiftDistance;
           MarkerStyle.SetAnchorPosition(this->GetPointX(iPoint),this->GetPointY(iPoint));
           Nodes.push_back(MarkerStyle);
         }
@@ -202,23 +217,45 @@ public:
         Graphs[ActivePadX][ActivePadY].push_back(gr);
     }
 
+    void SetXTitle(TString Title){
+      XAxes[ActivePadX].Title = Title;
+    }
+
+    void SetYTitle(TString Title){
+      YAxes[ActivePadY].Title = Title;
+    }
+
     void SetXYTitles(TString XTitle, TString YTitle){
       for( Axis &axis:XAxes ) axis.Title = XTitle;
       for( Axis &axis:YAxes ) axis.Title = YTitle;
     }
 
     void SetXRange(double Min, double Max){
+      XAxes[ActivePadX].Min = Min;
+      XAxes[ActivePadX].Max = Max;
+    }
+
+    void SetYRange(double Min, double Max){
+      YAxes[ActivePadY].Min = Min;
+      YAxes[ActivePadY].Max = Max;
+    }
+
+    void SetXRanges(double Min, double Max){
       for( Axis &axis:XAxes ){
         axis.Min = Min;
         axis.Max = Max;
       }
     }
 
-    void SetYRange(double Min, double Max){
+    void SetYRanges(double Min, double Max){
       for( Axis &axis:YAxes ){
         axis.Min = Min;
         axis.Max = Max;
       }
+    }
+
+    void SetLogX(){
+      for( Axis &axis:XAxes ) axis.IsLog=true;
     }
 
     void DrawZeroLines(){
@@ -241,6 +278,8 @@ public:
       Nodes[ActivePadX][ActivePadY].push_back(node);
     }
 
+    void AddZoomInset(PgfCanvas &can){
+    }
 }; // PgfCanvas
 
 class TexFile{
@@ -305,6 +344,8 @@ public:
                 AddAxisOption(Form("ymax=%f",YAxis.Max));
                 AddAxisOption(Form("x label style={at={(1,\\XLabelOffsetY)},anchor=north east}"));
                 AddAxisOption(Form("y label style={at={(\\YLabelOffsetX,1)},anchor=north east}"));
+                if( XAxis.IsLog ) AddAxisOption("xmode=log");
+                if( YAxis.IsLog ) AddAxisOption("ymode=log");
 
                 AddAxisOption(Form("name=%s",CanvasName(ColumnX,ColumnY).Data()));
                 if( !(ColumnX==0 && ColumnY==0) ){
@@ -373,7 +414,7 @@ public:
                         }
                     }
                     if( gr.OnlyDrawLines ) continue;
-                    AddPictureLine(Form("\\addplot[scatter, only marks, forget plot, no markers, error bars/.cd, error mark = none, error bar style = {line width=%fmm,solid}, x dir = %s, x explicit, y dir = %s, y explicit]",gr.ErrorBarStyle.Width,gr.DrawXError?"both":"none",gr.DrawYError?"both":"none"));
+                    AddPictureLine(Form("\\addplot[shift={(%fmm,%fmm)}, scatter, only marks, forget plot, no markers, error bars/.cd, error mark = none, error bar style = {line width=%fmm,solid}, x dir = %s, x explicit, y dir = %s, y explicit]",gr.XShiftDistance,gr.YShiftDistance,gr.ErrorBarStyle.Width,gr.DrawXError?"both":"none",gr.DrawYError?"both":"none"));
                     AddPictureLine("\t table[x index = 0, x error minus index = 1, x error plus index = 2, y index = 3, y error minus index = 4, y error plus index = 5]{");
                     for( int iPoint=0; iPoint<gr.GetN(); iPoint++ ){
                         AddPictureLine(Form("\t\t%f %f %f %f %f %f",gr.GetPointX(iPoint),gr.GetErrorXlow(iPoint),gr.GetErrorXhigh(iPoint), gr.GetPointY(iPoint),gr.GetErrorYlow(iPoint),gr.GetErrorYhigh(iPoint)));
@@ -402,45 +443,46 @@ public:
 }; // TexFile
 
 namespace SplittingFigureTools{
-  Marker LambdaMarkerStyle, LamBarMarkerStyle, LamBarInnerMarkerStyle;
+  Marker BesIILambdaMarkerStyle, BesIILamBarMarkerStyle, BesIILamBarInnerMarkerStyle;
+  Marker BesILambdaMarkerStyle, BesILamBarMarkerStyle;
+  Marker AliceLambdaMarkerStyle, AliceLamBarMarkerStyle;
+  double XShift;
   PgfCanvas * can;
+  double BesISizeFactor;
 
   void SetMarkerStyles(){
-    LambdaMarkerStyle.Shape = "star";
-    LambdaMarkerStyle.FillColor = "LambdaFillColor";
-    LamBarMarkerStyle.Shape = "star";
-    LamBarMarkerStyle.FillColor = "LamBarFillColor";
-    LamBarInnerMarkerStyle.Shape = "star";
-    LamBarInnerMarkerStyle.Size = LamBarMarkerStyle.Size*0.25;
-    LamBarInnerMarkerStyle.OutlineWidthScale = 0;
-    LamBarInnerMarkerStyle.OutlineColor = "LamBarInnerFillColor";
-    LamBarInnerMarkerStyle.FillColor = "LamBarInnerFillColor";
+    XShift = 1;
+    BesISizeFactor = 0.7;
+    BesIILambdaMarkerStyle.Shape = "star";
+    BesIILambdaMarkerStyle.FillColor = "LambdaFillColor";
+    BesIILamBarMarkerStyle.Shape = "star";
+    BesIILamBarMarkerStyle.FillColor = "LamBarFillColor";
+    BesIILamBarInnerMarkerStyle.Shape = "star";
+    BesIILamBarInnerMarkerStyle.Size = BesIILamBarMarkerStyle.Size*0.25;
+    BesIILamBarInnerMarkerStyle.OutlineWidthScale = 0;
+    BesIILamBarInnerMarkerStyle.OutlineColor = "LamBarInnerFillColor";
+    BesIILamBarInnerMarkerStyle.FillColor = "LamBarInnerFillColor";
+
+    BesILambdaMarkerStyle = BesIILambdaMarkerStyle;
+    BesILambdaMarkerStyle.FillColor = "{rgb:black,1;white,3}";
+    BesILambdaMarkerStyle.Size*=BesISizeFactor;
+    BesILamBarMarkerStyle = BesIILamBarMarkerStyle;
+    BesILamBarMarkerStyle.FillColor = "white";
+    BesILamBarMarkerStyle.Size*=BesISizeFactor;
+    
+    AliceLambdaMarkerStyle.Shape = "rectangle";
+    AliceLambdaMarkerStyle.FillColor = "{rgb:black,1;white,3}";
+    AliceLambdaMarkerStyle.Size = BesILambdaMarkerStyle.Size;
+    AliceLamBarMarkerStyle.Shape = "rectangle";
+    AliceLamBarMarkerStyle.FillColor = "white";
+    AliceLamBarMarkerStyle.Size = BesILamBarMarkerStyle.Size;
   }
 
   void SetCanvas(PgfCanvas &c){
     can = &c;
   }
 
-  void DrawData(Graph &StatGraph, Graph &SystGraph, bool IsLambda){
-    int ProtonCharge;
-    TString ParentName;
-    if( IsLambda ){
-      ProtonCharge = 1;
-      ParentName = "Lambda";
-      StatGraph.AddMarkerStyle(LambdaMarkerStyle);
-    }
-    else{
-      ProtonCharge = -1;
-      ParentName = "LamBar";
-      StatGraph.AddMarkerStyle(LamBarMarkerStyle);
-      StatGraph.AddMarkerStyle(LamBarInnerMarkerStyle);
-    }
-
-    if( StatGraph.GetN()>0 ){
-      double XShift = 0.1;
-      StatGraph.MovePoints(-ProtonCharge*XShift*StatGraph.GetErrorX(0),0);
-      SystGraph.MovePoints(-ProtonCharge*XShift*StatGraph.GetErrorX(0),0);
-    }
+  void DrawData(Graph &StatGraph, Graph &SystGraph, bool IsLambda, bool IsNewResult){
 
     can->AddGraph(StatGraph);
 
@@ -448,8 +490,47 @@ namespace SplittingFigureTools{
     for( int iPoint=0; iPoint<SystGraph.GetN(); iPoint++ ){
       can->AddNode(Form("\\draw[thick] (axis cs: %f,%f) rectangle (axis cs: %f,%f);",SystGraph.GetPointX(iPoint)-SystBoxWidthFactor*StatGraph.GetErrorX(0),SystGraph.GetPointY(iPoint)-SystGraph.GetErrorY(iPoint),SystGraph.GetPointX(iPoint)+SystBoxWidthFactor*StatGraph.GetErrorX(0),SystGraph.GetPointY(iPoint)+SystGraph.GetErrorY(iPoint)));
     }
-
   } // DrawData
+
+  void DrawData(Graph &StatGraph, Graph &SystGraph){
+    can->AddGraph(StatGraph);
+    double SystBoxWidthFactor=0.4;
+    for( int iPoint=0; iPoint<SystGraph.GetN(); iPoint++ ){
+      can->AddNode(Form("\\draw[thick] (axis cs: %f,%f) rectangle (axis cs: %f,%f);",SystGraph.GetPointX(iPoint)-SystBoxWidthFactor*StatGraph.GetErrorX(0),SystGraph.GetPointY(iPoint)-SystGraph.GetErrorY(iPoint),SystGraph.GetPointX(iPoint)+SystBoxWidthFactor*StatGraph.GetErrorX(0),SystGraph.GetPointY(iPoint)+SystGraph.GetErrorY(iPoint)));
+    }
+  }
+
+  void DrawBesILambda(Graph &StatGraph, Graph &SystGraph){
+    StatGraph.AddMarkerStyle(BesILambdaMarkerStyle);
+    StatGraph.XShiftDistance = -XShift;
+    DrawData(StatGraph,SystGraph);
+  }
+  void DrawBesILamBar(Graph &StatGraph, Graph &SystGraph){
+    StatGraph.AddMarkerStyle(BesILamBarMarkerStyle);
+    StatGraph.XShiftDistance = XShift;
+    DrawData(StatGraph,SystGraph);
+  }
+  void DrawBesIILambda(Graph &StatGraph, Graph &SystGraph){
+    StatGraph.AddMarkerStyle(BesIILambdaMarkerStyle);
+    StatGraph.XShiftDistance = -XShift;
+    DrawData(StatGraph,SystGraph);
+  }
+  void DrawBesIILamBar(Graph &StatGraph, Graph &SystGraph){
+    StatGraph.AddMarkerStyle(BesIILamBarMarkerStyle);
+    StatGraph.AddMarkerStyle(BesIILamBarInnerMarkerStyle);
+    StatGraph.XShiftDistance = XShift;
+    DrawData(StatGraph,SystGraph);
+  }
+  void DrawAliceLambda(Graph &StatGraph, Graph &SystGraph){
+    StatGraph.AddMarkerStyle(AliceLambdaMarkerStyle);
+    StatGraph.XShiftDistance = -XShift;
+    DrawData(StatGraph,SystGraph);
+  }
+  void DrawAliceLamBar(Graph &StatGraph, Graph &SystGraph){
+    StatGraph.AddMarkerStyle(AliceLamBarMarkerStyle);
+    StatGraph.XShiftDistance = XShift;
+    DrawData(StatGraph,SystGraph);
+  }
 
   void DrawInfoText(TString Energy, TString PtRapidityCentrality, double x, double y){
     TextBox * text = new TextBox(x,y);
@@ -472,20 +553,42 @@ namespace SplittingFigureTools{
     LamBarTitle->Anchor = "south";
     can->AddNode(LamBarTitle);
     Marker * LambdaLegendMarker = new Marker();
-    *LambdaLegendMarker = LambdaMarkerStyle;
+    *LambdaLegendMarker = BesIILambdaMarkerStyle;
     LambdaLegendMarker->SetAnchorPosition(x,y);
     LambdaLegendMarker->Shift(-XShift,MarkerYShift);
     can->AddNode(LambdaLegendMarker);
     Marker * LamBarLegendMarker = new Marker();
-    *LamBarLegendMarker = LamBarMarkerStyle;
+    *LamBarLegendMarker = BesIILamBarMarkerStyle;
     LamBarLegendMarker->SetAnchorPosition(x,y);
     LamBarLegendMarker->Shift(XShift,MarkerYShift);
     can->AddNode(LamBarLegendMarker);
     Marker * LamBarInnerLegendMarker = new Marker();
-    *LamBarInnerLegendMarker = LamBarInnerMarkerStyle;
+    *LamBarInnerLegendMarker = BesIILamBarInnerMarkerStyle;
     LamBarInnerLegendMarker->SetAnchorPosition(x,y);
     LamBarInnerLegendMarker->Shift(XShift,MarkerYShift);
     can->AddNode(LamBarInnerLegendMarker);
+  }
+
+  void SetStatAndSystGraphs(Graph &StatisticalErrorGraph, Graph &SystematicErrorGraph, vector<vector<double>> MeasuredPolarizationDataPoints, int IsLambda, bool SetLogX = true, bool OffsetX = true){
+    const int NumDataPoints = (const int)MeasuredPolarizationDataPoints.size();
+    double SystErrX = SetLogX?0.12:2; // this is the "width" of the systematic error box in energy (just for visibility)
+    double StatErrX = 0.;
+    for( int iDataPoint = 0; iDataPoint<NumDataPoints; iDataPoint++ ){
+      double Energy = MeasuredPolarizationDataPoints[iDataPoint][0];
+      if( OffsetX && IsLambda ) Energy -= OffsetsOnLogScale(Energy,EnergyShift).first;
+      if( OffsetX && !IsLambda ) Energy += OffsetsOnLogScale(Energy,EnergyShift).second;
+      double Polarization = MeasuredPolarizationDataPoints[iDataPoint][1];
+      double StatErr = MeasuredPolarizationDataPoints[iDataPoint][2];
+      double SystErrLow = MeasuredPolarizationDataPoints[iDataPoint][3];
+      double SystErrHgh = MeasuredPolarizationDataPoints[iDataPoint][4];
+      double LeftSystErr = (MeasuredPolarizationDataPoints[iDataPoint][3]==0. && MeasuredPolarizationDataPoints[iDataPoint][4]==0.)?0.:!SetLogX?SystErrX:OffsetsOnLogScale(Energy,SystErrX).first;
+      double RghtSystErr = (MeasuredPolarizationDataPoints[iDataPoint][3]==0. && MeasuredPolarizationDataPoints[iDataPoint][4]==0.)?0.:!SetLogX?SystErrX:OffsetsOnLogScale(Energy,SystErrX).second;
+      double StatXErr = 0.;
+      StatisticalErrorGraph.SetPoint(iDataPoint,Energy,Polarization);
+      StatisticalErrorGraph.SetPointError(iDataPoint,StatXErr,StatXErr,StatErr,StatErr);
+      SystematicErrorGraph.SetPoint(iDataPoint,Energy,Polarization);
+      SystematicErrorGraph.SetPointError(iDataPoint,LeftSystErr,RghtSystErr,SystErrLow,SystErrHgh);
+    } // iDataPoint
   }
 }; // SplittingFigureTools
 
@@ -533,7 +636,6 @@ struct Legend{
       return gr;
   }
 
-
 void Plotter(TString OutputFileCommitHash = "test"){
     TString LambdaCommitHash19GeVCentrality = "84380533efb06885108ea47a091187d38f1989fe";
     TString LamBarCommitHash19GeVCentrality = "a62202a143af0c296e98e4e8d54cee0f0d583150";
@@ -580,61 +682,168 @@ void Plotter(TString OutputFileCommitHash = "test"){
     Graph LambdaSystGraph27GeVRapidity = ConvertTh1ToGraph( *((TH1D*)LambdaFile27GeV.Get("ComRapidity_Polarization_SystematicUncertainty")) );
     Graph LamBarSystGraph27GeVRapidity = ConvertTh1ToGraph( *((TH1D*)LamBarFile27GeV.Get("ComRapidity_Polarization_SystematicUncertainty")) );
 
+  double AlphaChangeFactor = 0.642/0.732;  // old/new
+  vector<vector<double>> NineteenGeVLambdaPolarizationGraphPoints = {
+    {
+      19.6+OffsetsOnLogScale(19.6,1.*EnergyShift).second, // 044666513c03b24ef87a6361ff6394455d9acde8
+      0.9152,
+      0.0503,
+      0.0172,
+      0.0172,
+    },
+    {
+      27+OffsetsOnLogScale(27,1.*EnergyShift).second,
+      0.7168,
+      0.0553,
+      0.0143,
+      0.0143,
+    },
+  };
+  vector<double> NineteenGeVEnergies; for( int i=0; i<NineteenGeVLambdaPolarizationGraphPoints.size(); i++ ) NineteenGeVEnergies.push_back(NineteenGeVLambdaPolarizationGraphPoints[i][0]);
+  vector<vector<double>> NineteenGeVLamBarPolarizationGraphPoints = {
+    {
+      19.6+OffsetsOnLogScale(19.6,1.*EnergyShift).second, // 5cae15284111395d6a12676b1db189ad894d4e4c
+      0.8976,
+      0.1170,
+      0.0171,
+      0.0171,
+    },
+    {
+      27+OffsetsOnLogScale(27,1.*EnergyShift).second,
+      0.8257,
+      0.1046,
+      0.0163,
+      0.0163,
+    },
+  };
+  vector<vector<double>> StarLambdaPolarizationGraphPoints = {
+    {3.,    4.90823,                  0.81389,                  0.15485,                  0.15485                   },  // from joseph@joseph-Latitude-5590:~/Documents/Coding/OSUResearch/LambdaPolarizationAnalyses/Local/3GeV/Output/Histograms/1630bfc58b466c639cf8e643b4e9f5aafc6a11d5.PolarizationHistograms.root
+    {7.7,   AlphaChangeFactor*2.039,  AlphaChangeFactor*0.628,  AlphaChangeFactor*0.2,    AlphaChangeFactor*0.0   },
+    {11.5,  AlphaChangeFactor*1.344,  AlphaChangeFactor*0.396,  AlphaChangeFactor*0.2,    AlphaChangeFactor*0.0   },
+    {14.5,  AlphaChangeFactor*1.321,  AlphaChangeFactor*0.482,  AlphaChangeFactor*0.3,    AlphaChangeFactor*0.0   },
+    {19.6-OffsetsOnLogScale(19.6,1.*EnergyShift).first,  AlphaChangeFactor*0.950,  AlphaChangeFactor*0.305,  AlphaChangeFactor*0.2,    AlphaChangeFactor*0.0   },
+    {27.0-OffsetsOnLogScale(27,1.*EnergyShift).first,  AlphaChangeFactor*1.047,  AlphaChangeFactor*0.282,  AlphaChangeFactor*0.2,    AlphaChangeFactor*0.0   },
+    {39.0,  AlphaChangeFactor*0.506,  AlphaChangeFactor*0.424,  AlphaChangeFactor*0.2,    AlphaChangeFactor*0.0   },
+    {62.4,  AlphaChangeFactor*1.334,  AlphaChangeFactor*1.167,  AlphaChangeFactor*0.2,    AlphaChangeFactor*0.0   },
+    {200.0, AlphaChangeFactor*0.277,  AlphaChangeFactor*0.040,  AlphaChangeFactor*0.049,  AlphaChangeFactor*0.039 },
+  };
+  vector<vector<double>> StarLamBarPolarizationGraphPoints = {
+    {7.7,   AlphaChangeFactor*8.669,  AlphaChangeFactor*3.569,  AlphaChangeFactor*1.00,   AlphaChangeFactor*0.0   },
+    {11.5,  AlphaChangeFactor*1.802,  AlphaChangeFactor*1.261,  AlphaChangeFactor*0.15,   AlphaChangeFactor*0.0   },
+    {14.5,  AlphaChangeFactor*2.276,  AlphaChangeFactor*1.210,  AlphaChangeFactor*0.15,   AlphaChangeFactor*0.4   },
+    {19.6-OffsetsOnLogScale(19.6,1.*EnergyShift).first,  AlphaChangeFactor*1.515,  AlphaChangeFactor*0.610,  AlphaChangeFactor*0.15,   AlphaChangeFactor*0.0   },
+    {27.0-OffsetsOnLogScale(27,1.*EnergyShift).first,  AlphaChangeFactor*1.245,  AlphaChangeFactor*0.471,  AlphaChangeFactor*0.15,   AlphaChangeFactor*0.0   },
+    {39.0,  AlphaChangeFactor*0.938,  AlphaChangeFactor*0.615,  AlphaChangeFactor*0.15,   AlphaChangeFactor*0.0   },
+    {62.4,  AlphaChangeFactor*1.712,  AlphaChangeFactor*1.592,  AlphaChangeFactor*0.15,   AlphaChangeFactor*0.0   },
+    {200.0, AlphaChangeFactor*0.240,  AlphaChangeFactor*0.045,  AlphaChangeFactor*0.045,  AlphaChangeFactor*0.061 },
+  };
+
+  vector<vector<double>> AlicLambdaPolarizationGraphPoints = {
+    {2760,  AlphaChangeFactor*-0.0785, AlphaChangeFactor*0.102,  AlphaChangeFactor*0.06,   AlphaChangeFactor*0.06  },
+    {5020,  AlphaChangeFactor*0.131, AlphaChangeFactor*0.11,   AlphaChangeFactor*0.06,   AlphaChangeFactor*0.06  },
+  };
+  vector<double> AlicEnergies; for( int i=0; i<AlicLambdaPolarizationGraphPoints.size(); i++ ) AlicEnergies.push_back(AlicLambdaPolarizationGraphPoints[i][0]);
+  vector<vector<double>> AlicLamBarPolarizationGraphPoints = {
+    {2760,  AlphaChangeFactor*0.052, AlphaChangeFactor*0.1,    AlphaChangeFactor*0.06,   AlphaChangeFactor*0.06  },
+    {5020,  AlphaChangeFactor*-0.14,   AlphaChangeFactor*0.12,   AlphaChangeFactor*0.06,   AlphaChangeFactor*0.06  },
+  };
+
     gSystem->Exec(Form("mkdir -p Output/%s",OutputFileCommitHash.Data()));
     TexFile MyTexFile(OutputFileCommitHash);
 
     PgfCanvas CentralityCanvas(1,2);
     CentralityCanvas.SetXYTitles("\\mathrm{Centrality}~(\\%)",PolarizationTitle);
-    CentralityCanvas.SetXRange(-5,85);
-    CentralityCanvas.SetYRange(-0.65,3.65);
+    CentralityCanvas.SetXRanges(-5,85);
+    CentralityCanvas.SetYRanges(-0.65,3.65);
     CentralityCanvas.DrawZeroLines();
     CentralityCanvas.cd(0,0);
     // SplittingFigure CentralityFigure;
     SplittingFigureTools::SetCanvas(CentralityCanvas);
     SplittingFigureTools::SetMarkerStyles();
-    SplittingFigureTools::DrawData(LambdaStatGraph19GeVCentrality,LambdaSystGraph19GeVCentrality,true);
-    SplittingFigureTools::DrawData(LamBarStatGraph19GeVCentrality,LamBarSystGraph19GeVCentrality,false);
+    SplittingFigureTools::DrawBesIILambda(LambdaStatGraph19GeVCentrality,LambdaSystGraph19GeVCentrality);
+    SplittingFigureTools::DrawBesIILamBar(LamBarStatGraph19GeVCentrality,LamBarSystGraph19GeVCentrality);
     SplittingFigureTools::DrawInfoText("19.6","$p_{\\mathrm{T}}>0.5$~GeV/$c$, $|y|<1$",22,2.8);
     CentralityCanvas.cd(0,1);
-    SplittingFigureTools::DrawData(LambdaStatGraph27GeVCentrality,LambdaSystGraph27GeVCentrality,true);
-    SplittingFigureTools::DrawData(LamBarStatGraph27GeVCentrality,LamBarSystGraph27GeVCentrality,false);
+    SplittingFigureTools::DrawBesIILambda(LambdaStatGraph27GeVCentrality,LambdaSystGraph27GeVCentrality);
+    SplittingFigureTools::DrawBesIILamBar(LamBarStatGraph27GeVCentrality,LamBarSystGraph27GeVCentrality);
     SplittingFigureTools::DrawLambdaPointLegend(15,1.5);
     SplittingFigureTools::DrawInfoText("27","$p_{\\mathrm{T}}>0.5$~GeV/$c$, $|y|<1$",22,2.8);
     MyTexFile.AddCanvas(CentralityCanvas);
 
     PgfCanvas PtCanvas(1,2);
     PtCanvas.SetXYTitles("p_{\\mathrm{T}}~(\\mathrm{GeV}/c)",PolarizationTitle);
-    PtCanvas.SetXRange(0.3,3.7);
-    PtCanvas.SetYRange(-0.22,1.82);
+    PtCanvas.SetXRanges(0.3,3.7);
+    PtCanvas.SetYRanges(-0.22,1.82);
     PtCanvas.DrawZeroLines();
     PtCanvas.cd(0,0);
     SplittingFigureTools::SetCanvas(PtCanvas);
-    SplittingFigureTools::DrawData(LambdaStatGraph19GeVPt,LambdaSystGraph19GeVPt,true);
-    SplittingFigureTools::DrawData(LamBarStatGraph19GeVPt,LamBarSystGraph19GeVPt,false);
+    SplittingFigureTools::DrawBesIILambda(LambdaStatGraph19GeVPt,LambdaSystGraph19GeVPt);
+    SplittingFigureTools::DrawBesIILamBar(LamBarStatGraph19GeVPt,LamBarSystGraph19GeVPt);
     SplittingFigureTools::DrawInfoText("19.6","20-50\\% Centrality, $|y|<1$",1.4,0.05);
     SplittingFigureTools::DrawLambdaPointLegend(3.35,1.5);
     PtCanvas.cd(0,1);
-    SplittingFigureTools::DrawData(LambdaStatGraph27GeVPt,LambdaSystGraph27GeVPt,true);
-    SplittingFigureTools::DrawData(LamBarStatGraph27GeVPt,LamBarSystGraph27GeVPt,false);
+    SplittingFigureTools::DrawBesIILambda(LambdaStatGraph27GeVPt,LambdaSystGraph27GeVPt);
+    SplittingFigureTools::DrawBesIILamBar(LamBarStatGraph27GeVPt,LamBarSystGraph27GeVPt);
     SplittingFigureTools::DrawInfoText("27","20-50\\% Centrality, $|y|<1$",1.4,0.05);
     MyTexFile.AddCanvas(PtCanvas);
 
     PgfCanvas RapidityCanvas(1,2);
     RapidityCanvas.SetXYTitles("y",PolarizationTitle);
-    RapidityCanvas.SetXRange(-1.7,1.7);
-    RapidityCanvas.SetYRange(-0.22,1.82);
+    RapidityCanvas.SetXRanges(-1.7,1.7);
+    RapidityCanvas.SetYRanges(-0.22,1.82);
     RapidityCanvas.DrawZeroLines();
     RapidityCanvas.cd(0,0);
     SplittingFigureTools::SetCanvas(RapidityCanvas);
-    SplittingFigureTools::DrawData(LambdaStatGraph19GeVRapidity,LambdaSystGraph19GeVRapidity,true);
-    SplittingFigureTools::DrawData(LamBarStatGraph19GeVRapidity,LamBarSystGraph19GeVRapidity,false);
+    SplittingFigureTools::DrawBesIILambda(LambdaStatGraph19GeVRapidity,LambdaSystGraph19GeVRapidity);
+    SplittingFigureTools::DrawBesIILamBar(LamBarStatGraph19GeVRapidity,LamBarSystGraph19GeVRapidity);
     SplittingFigureTools::DrawInfoText("19.6","20-50\\% Centrality, $p_{\\mathrm{T}}>0.5$~GeV/$c$",0,.05);
     SplittingFigureTools::DrawLambdaPointLegend(1.5,1.65);
     RapidityCanvas.cd(0,1);
-    SplittingFigureTools::DrawData(LambdaStatGraph27GeVRapidity,LambdaSystGraph27GeVRapidity,true);
-    SplittingFigureTools::DrawData(LamBarStatGraph27GeVRapidity,LamBarSystGraph27GeVRapidity,false);
+    SplittingFigureTools::DrawBesIILambda(LambdaStatGraph27GeVRapidity,LambdaSystGraph27GeVRapidity);
+    SplittingFigureTools::DrawBesIILamBar(LamBarStatGraph27GeVRapidity,LamBarSystGraph27GeVRapidity);
     SplittingFigureTools::DrawInfoText("27","20-50\\% Centrality, $p_{\\mathrm{T}}>0.5$~GeV/$c$",0,0.05);
     MyTexFile.AddCanvas(RapidityCanvas);
+
+    Graph StarBesILambdaStat, StarBesILambdaSyst;
+    SplittingFigureTools::SetStatAndSystGraphs(StarBesILambdaStat,StarBesILambdaSyst,StarLambdaPolarizationGraphPoints,true);
+    Graph StarBesILamBarStat, StarBesILamBarSyst;
+    SplittingFigureTools::SetStatAndSystGraphs(StarBesILamBarStat,StarBesILamBarSyst,StarLamBarPolarizationGraphPoints,true);
+    Graph StarBesIILambdaStat, StarBesIILambdaSyst;
+    SplittingFigureTools::SetStatAndSystGraphs(StarBesIILambdaStat,StarBesIILambdaSyst,NineteenGeVLambdaPolarizationGraphPoints,true);
+    Graph StarBesIILamBarStat, StarBesIILamBarSyst;
+    SplittingFigureTools::SetStatAndSystGraphs(StarBesIILamBarStat,StarBesIILamBarSyst,NineteenGeVLamBarPolarizationGraphPoints,true);
+    Graph AliceLambdaStat, AliceLambdaSyst;
+    SplittingFigureTools::SetStatAndSystGraphs(AliceLambdaStat,AliceLambdaSyst,AlicLambdaPolarizationGraphPoints,true);
+    Graph AliceLamBarStat, AliceLamBarSyst;
+    SplittingFigureTools::SetStatAndSystGraphs(AliceLamBarStat,AliceLamBarSyst,AlicLamBarPolarizationGraphPoints,true);
+
+    PgfCanvas EnergyCanvas(1,2);
+      PgfCanvas EnergyCanvasTopPanelZoom(1,1);
+      EnergyCanvasTopPanelZoom.SetXRange(15,35);
+      EnergyCanvasTopPanelZoom.SetYRange(0,3);
+      SplittingFigureTools::SetCanvas(EnergyCanvasTopPanelZoom);
+      SplittingFigureTools::DrawBesILambda(StarBesILambdaStat,StarBesILambdaSyst);
+      SplittingFigureTools::DrawBesILamBar(StarBesILamBarStat,StarBesILamBarSyst);
+      SplittingFigureTools::DrawBesIILambda(StarBesIILambdaStat,StarBesIILambdaSyst);
+      SplittingFigureTools::DrawBesIILamBar(StarBesIILamBarStat,StarBesIILamBarSyst);
+      EnergyCanvas.AddZoomInset(EnergyCanvasTopPanelZoom);
+    EnergyCanvas.SetLogX();
+    EnergyCanvas.SetXRanges(1.5,9000);
+    EnergyCanvas.cd(0,0);
+    EnergyCanvas.SetYTitle(PolarizationTitle);
+    EnergyCanvas.SetYRange(-1,12);
+    SplittingFigureTools::SetCanvas(EnergyCanvas);
+    SplittingFigureTools::DrawBesILambda(StarBesILambdaStat,StarBesILambdaSyst);
+    SplittingFigureTools::DrawBesILamBar(StarBesILamBarStat,StarBesILamBarSyst);
+    SplittingFigureTools::DrawBesIILambda(StarBesIILambdaStat,StarBesIILambdaSyst);
+    SplittingFigureTools::DrawBesIILamBar(StarBesIILamBarStat,StarBesIILamBarSyst);
+    SplittingFigureTools::DrawAliceLambda(AliceLambdaStat,AliceLambdaSyst);
+    SplittingFigureTools::DrawAliceLamBar(AliceLamBarStat,AliceLamBarSyst);
+    EnergyCanvas.cd(0,1);
+    EnergyCanvas.SetYRange(-1.6,2.4);
+    EnergyCanvas.SetXTitle("\\sNN");
+    EnergyCanvas.SetYTitle("P_{\\bar{\\Lambda}}-P_{\\Lambda}~(\\%)");
+    MyTexFile.AddCanvas(EnergyCanvas);
 
     double Res19GeV[] = {0.2048, 0.371, 0.4768, 0.5418, 0.5773, 0.5924, 0.5932, 0.5826, 0.563, 0.5343, 0.495, 0.4474, 0.399, 0.3499, 0.3015, 0.2599};
     double Res27GeV[] = {0.1836, 0.3332, 0.4194, 0.4685, 0.4935, 0.5003, 0.4987, 0.4851, 0.4685, 0.4436, 0.4134, 0.3801, 0.3431, 0.3038, 0.2645, 0.2161};
@@ -646,8 +855,8 @@ void Plotter(TString OutputFileCommitHash = "test"){
     for( int i=0; i<Resolution27GeV.GetN(); i++ ) Resolution27GeV.SetPointY(i,Res27GeV[i]);
     PgfCanvas ResolutionCanvas(1,1);
     ResolutionCanvas.SetXYTitles("\\mathrm{Centrality}~(\\%)","R_{\\mathrm{EP}}^{(1)}");
-    ResolutionCanvas.SetXRange(-5,85);
-    ResolutionCanvas.SetYRange(0,0.65);
+    ResolutionCanvas.SetXRanges(-5,85);
+    ResolutionCanvas.SetYRanges(0,0.65);
     Marker Resolution19GeVMarkerStyle, Resolution27GeVMarkerStyle;
     Resolution19GeVMarkerStyle.Shape = "circle";
     Resolution19GeVMarkerStyle.Size = 2;
