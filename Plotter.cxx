@@ -1,3 +1,5 @@
+TString sNNTitle = "\\sqrt{s_\\mathrm{NN}}";
+
 vector<vector<double>> Splitting(vector<vector<double>> LambdaPoints, vector<vector<double>> LamBarPoints){
   vector<vector<double>> Differences;
   for( int iEnergy = 0; iEnergy<LamBarPoints.size(); iEnergy++ ){
@@ -74,12 +76,12 @@ struct Marker : public Node{
   public:
     double Size, OutlineWidthScale;
     TString Shape;
-    double StarRatio;
+    double StarPointRatio;
 
     Marker(double x = 0, double y = 0){
         AnchorX = x;
         AnchorY = y;
-        StarRatio = 2.618034;
+        StarPointRatio = 2.618034;
         OutlineColor="black";
         FillColor = "blue";
         Size = 3; // mm
@@ -93,7 +95,7 @@ struct Marker : public Node{
       Options.push_back(Form("minimum size=%fmm",Size));
       Options.push_back(Form("line width=%fmm",OutlineWidthScale*Size));
       Options.push_back(Shape.Data());
-      if( Shape=="star" ) Options.push_back(Form("star point ratio=%f",StarRatio));
+      if( Shape=="star" ) Options.push_back(Form("star point ratio=%f",StarPointRatio));
       return Node::NodeText();
     }
 };
@@ -231,12 +233,15 @@ public:
     vector<TString> AdditionalNodes[10][10]; // Ideally would be [NumDivisionsX][NumDivisionsY]
     vector<Node*> Nodes[10][10]; // Ideally would be [NumDivisionsX][NumDivisionsY]
     vector<vector<bool>> DrawZeroLinesVector;
+    double XLabelOffsetY, YLabelOffsetX;
 
     PgfCanvas(int NX = 1, int NY = 1):NumDivisionsX(NX),NumDivisionsY(NY){
         Width = 100/(double)NX;
         Height = 0.9*Width;
         XAxes.resize(NX);
         YAxes.resize(NY);
+        XLabelOffsetY = -0.07;
+        YLabelOffsetX = -0.161;
         for( int iX=0; iX<NX; iX++ ) DrawZeroLinesVector.push_back(vector<bool>(NY));
         cd();
     }
@@ -336,6 +341,7 @@ public:
     TexFile(TString Name):FileName(Name){
         gSystem->Exec(Form("mkdir -p Output/%s",Name.Data()));
         File.open(Form("Output/%s/%s.tex",Name.Data(),Name.Data()));
+        File<<"\\batchmode\n";
         File<<"\\documentclass[class=article,10pt,border=1pt]{standalone}\n";
         File<<"\\usepackage[utf8]{inputenc}\n";
         File<<"\\usepackage{bm}\n";
@@ -351,14 +357,6 @@ public:
         File<<"\\usetikzlibrary{external}\n";
         File<<"\\tikzexternalize\n";
         File<<"\\usepackage{calc}\n";
-        File<<"\\definecolor{LambdaFillColor}{RGB}{51,102,255}\n";
-        File<<"\\definecolor{LamBarFillColor}{RGB}{204,16,0}\n";
-        File<<"\\definecolor{LambdaInnerFillColor}{RGB}{51,102,255}\n";
-        File<<"\\definecolor{LamBarInnerFillColor}{RGB}{255,255,255}\n";
-        File<<"\\newcommand{\\PerfectStarRadiusRatio}{2.618034}";
-        File<<"\\newcommand{\\XLabelOffsetY}{-0.07}";
-        File<<"\\newcommand{\\YLabelOffsetX}{-0.161}";
-        File<<"\\newcommand{\\sNN}{\\sqrt{s_\\mathrm{NN}}}";
         File<<"\n";
         File<<"\\begin{document}\n";
         File<<"\n";
@@ -386,8 +384,8 @@ public:
                 AddAxisOption(Form("xmax=%f",XAxis.Max));
                 AddAxisOption(Form("ymin=%f",YAxis.Min));
                 AddAxisOption(Form("ymax=%f",YAxis.Max));
-                AddAxisOption(Form("x label style={at={(1,\\XLabelOffsetY)},anchor=north east}"));
-                AddAxisOption(Form("y label style={at={(\\YLabelOffsetX,1)},anchor=north east}"));
+                AddAxisOption(Form("x label style={at={(1,%f)},anchor=north east}",Canvas.XLabelOffsetY));
+                AddAxisOption(Form("y label style={at={(%f,1)},anchor=north east}",Canvas.YLabelOffsetX));
                 if( XAxis.IsLog ) AddAxisOption("xmode=log");
                 if( YAxis.IsLog ) AddAxisOption("ymode=log");
 
@@ -495,41 +493,46 @@ namespace SplittingFigureTools{
   double XShift;
   PgfCanvas * can;
   double BesISizeFactor;
+  TString LambdaFillColor, LamBarFillColor, LamBarInnerFillColor, GrayColor;
 
   void SetMarkerStyles(){
     XShift = .5;
     BesISizeFactor = 0.7;
+    LambdaFillColor = "{rgb:red,51;green,102;blue,255}";
+    LamBarFillColor = "{rgb:red,204;green,16;blue,0}";
+    LamBarInnerFillColor = "white";
+    GrayColor = "{rgb:black,1;white,3}";
 
     BesIILambdaMarkerStyle.Shape = "star";
-    BesIILambdaMarkerStyle.FillColor = "LambdaFillColor";
+    BesIILambdaMarkerStyle.FillColor = LambdaFillColor;
     BesIILamBarMarkerStyle.Shape = "star";
-    BesIILamBarMarkerStyle.FillColor = "LamBarFillColor";
+    BesIILamBarMarkerStyle.FillColor = LamBarFillColor;
     BesIILamBarInnerMarkerStyle.Shape = "star";
     BesIILamBarInnerMarkerStyle.Size = BesIILamBarMarkerStyle.Size*0.25;
     BesIILamBarInnerMarkerStyle.OutlineWidthScale = 0;
-    BesIILamBarInnerMarkerStyle.OutlineColor = "LamBarInnerFillColor";
-    BesIILamBarInnerMarkerStyle.FillColor = "LamBarInnerFillColor";
+    BesIILamBarInnerMarkerStyle.OutlineColor = LamBarInnerFillColor;
+    BesIILamBarInnerMarkerStyle.FillColor = LamBarInnerFillColor;
 
     BesILambdaMarkerStyle = BesIILambdaMarkerStyle;
-    BesILambdaMarkerStyle.FillColor = "{rgb:black,1;white,3}";
+    BesILambdaMarkerStyle.FillColor = GrayColor;
     BesILambdaMarkerStyle.Size*=BesISizeFactor;
     BesILamBarMarkerStyle = BesIILamBarMarkerStyle;
     BesILamBarMarkerStyle.FillColor = "white";
     BesILamBarMarkerStyle.Size*=BesISizeFactor;
     
     AliceLambdaMarkerStyle.Shape = "rectangle";
-    AliceLambdaMarkerStyle.FillColor = "{rgb:black,1;white,3}";
+    AliceLambdaMarkerStyle.FillColor = GrayColor;
     AliceLambdaMarkerStyle.Size = BesILambdaMarkerStyle.Size;
     AliceLamBarMarkerStyle.Shape = "rectangle";
     AliceLamBarMarkerStyle.FillColor = "white";
     AliceLamBarMarkerStyle.Size = BesILamBarMarkerStyle.Size;
 
-    BesISplittingMarkerStyle.Shape = "star,star points=4, star point ratio=2.4";
-    BesISplittingMarkerStyle.FillColor = "lightgray";
+    BesISplittingMarkerStyle.Shape = "star,star points=4, star point ratio=2.618034";
+    BesISplittingMarkerStyle.FillColor = GrayColor;
     BesIISplittingMarkerStyle.Shape = BesISplittingMarkerStyle.Shape;
     BesIISplittingMarkerStyle.FillColor = "pink";
     AliceSplittingMarkerStyle.Shape = "diamond";
-    AliceSplittingMarkerStyle.FillColor = "lightgray";
+    AliceSplittingMarkerStyle.FillColor = GrayColor;
   }
 
   void SetStatAndSystGraphs(Graph &StatisticalErrorGraph, Graph &SystematicErrorGraph, vector<vector<double>> MeasuredPolarizationDataPoints){
@@ -617,7 +620,7 @@ namespace SplittingFigureTools{
 
   void DrawInfoText(TString Energy, TString PtRapidityCentrality, double x, double y){
     TextBox * text = new TextBox(x,y);
-    text->Text = Form("STAR Au+Au, $\\sNN=%s$~GeV\\\\%s\\\\$\\alpha_\\Lambda=0.732$",Energy.Data(),PtRapidityCentrality.Data());
+    text->Text = Form("STAR Au+Au, $%s=%s$~GeV\\\\%s\\\\$\\alpha_\\Lambda=0.732$",sNNTitle.Data(),Energy.Data(),PtRapidityCentrality.Data());
     can->AddNode(text);
   }
 
@@ -904,7 +907,7 @@ void Plotter(TString OutputFileCommitHash = "test"){
     SplittingFigureTools::DrawAliceLamBar(AliceLamBarStat,AliceLamBarSyst);
     EnergyCanvas.cd(0,1);
     EnergyCanvas.SetYRange(-1.6,2.4);
-    EnergyCanvas.SetXTitle("\\sNN");
+    EnergyCanvas.SetXTitle(sNNTitle.Data());
     EnergyCanvas.SetYTitle("P_{\\bar{\\Lambda}}-P_{\\Lambda}~(\\%)");
     SplittingFigureTools::DrawBesISplitting(StarLambdaPolarizationGraphPoints,StarLamBarPolarizationGraphPoints);
     SplittingFigureTools::DrawBesIISplitting(NineteenGeVLambdaPolarizationGraphPoints,NineteenGeVLamBarPolarizationGraphPoints);
@@ -941,7 +944,7 @@ void Plotter(TString OutputFileCommitHash = "test"){
     TString LegendFirstRowYShift = "0mm";
     TString LegendSecndRowYShift = "-5mm";
     ResolutionCanvas.AddNode(Form("\\node[draw, shape=rectangle, minimum width=25mm, minimum height=15mm, anchor=center,fill={rgb:black,0;white,3}] at (axis cs: %f,%f) {};",ResolutionLegendX,ResolutionLegendY));
-    ResolutionCanvas.AddNode(Form("\\node[anchor=center,align = center, yshift=%s] at (axis cs: %f,%f){$\\sNN$};",TitleYShift.Data(),ResolutionLegendX,ResolutionLegendY));
+    ResolutionCanvas.AddNode(Form("\\node[anchor=center,align = center, yshift=%s] at (axis cs: %f,%f){$%s$};",TitleYShift.Data(),ResolutionLegendX,ResolutionLegendY,sNNTitle.Data()));
 	  ResolutionCanvas.AddNode(Form("\\node[color=black, fill=red, line width=0.100000mm, circle, minimum size=2.000000mm, inner sep=0pt, xshift = %s, yshift = %s, draw] at (axis cs: %f,%f){};",LegendMarkerXShift.Data(),LegendFirstRowYShift.Data(),ResolutionLegendX,ResolutionLegendY));
 	  ResolutionCanvas.AddNode(Form("\\node[color=black, fill=blue, line width=0.100000mm, circle, minimum size=2.000000mm, inner sep=0pt, xshift = %s, yshift = %s, draw] at (axis cs: %f,%f){};",LegendMarkerXShift.Data(),LegendSecndRowYShift.Data(),ResolutionLegendX,ResolutionLegendY));
     ResolutionCanvas.AddNode(Form("\\node[anchor=west,align = center, xshift=%s, yshift=%s] at (axis cs: %f,%f){19.6~GeV};",LegendLabelXShift.Data(),LegendFirstRowYShift.Data(),ResolutionLegendX,ResolutionLegendY));
