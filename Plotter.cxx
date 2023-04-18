@@ -1,3 +1,18 @@
+vector<vector<double>> Splitting(vector<vector<double>> LambdaPoints, vector<vector<double>> LamBarPoints){
+  vector<vector<double>> Differences;
+  for( int iEnergy = 0; iEnergy<LamBarPoints.size(); iEnergy++ ){
+    if( LambdaPoints[iEnergy][0]==3 ) break;
+    vector<double> Diff;
+    Diff.push_back(LambdaPoints[iEnergy][0]);
+    Diff.push_back(LamBarPoints[iEnergy][1]-LambdaPoints[iEnergy][1]);
+    Diff.push_back(sqrt(pow(LamBarPoints[iEnergy][2],2)+pow(LambdaPoints[iEnergy][2],2)));
+    Diff.push_back(sqrt(pow(LamBarPoints[iEnergy][3],2)+pow(LambdaPoints[iEnergy][3],2)));
+    Diff.push_back(sqrt(pow(LamBarPoints[iEnergy][4],2)+pow(LambdaPoints[iEnergy][4],2)));
+    Differences.push_back(Diff);
+  }
+  return Differences;
+} // Splitting
+
 struct Axis{
     double Min, Max;
     int NumMinorTicks;
@@ -476,6 +491,7 @@ namespace SplittingFigureTools{
   Marker BesIILambdaMarkerStyle, BesIILamBarMarkerStyle, BesIILamBarInnerMarkerStyle;
   Marker BesILambdaMarkerStyle, BesILamBarMarkerStyle;
   Marker AliceLambdaMarkerStyle, AliceLamBarMarkerStyle;
+  Marker BesISplittingMarkerStyle, BesIISplittingMarkerStyle, AliceSplittingMarkerStyle;
   double XShift;
   PgfCanvas * can;
   double BesISizeFactor;
@@ -483,6 +499,7 @@ namespace SplittingFigureTools{
   void SetMarkerStyles(){
     XShift = .5;
     BesISizeFactor = 0.7;
+
     BesIILambdaMarkerStyle.Shape = "star";
     BesIILambdaMarkerStyle.FillColor = "LambdaFillColor";
     BesIILamBarMarkerStyle.Shape = "star";
@@ -506,6 +523,31 @@ namespace SplittingFigureTools{
     AliceLamBarMarkerStyle.Shape = "rectangle";
     AliceLamBarMarkerStyle.FillColor = "white";
     AliceLamBarMarkerStyle.Size = BesILamBarMarkerStyle.Size;
+
+    BesISplittingMarkerStyle.Shape = "star,star points=4, star point ratio=2.4";
+    BesISplittingMarkerStyle.FillColor = "lightgray";
+    BesIISplittingMarkerStyle.Shape = BesISplittingMarkerStyle.Shape;
+    BesIISplittingMarkerStyle.FillColor = "pink";
+    AliceSplittingMarkerStyle.Shape = "diamond";
+    AliceSplittingMarkerStyle.FillColor = "lightgray";
+  }
+
+  void SetStatAndSystGraphs(Graph &StatisticalErrorGraph, Graph &SystematicErrorGraph, vector<vector<double>> MeasuredPolarizationDataPoints){
+    const int NumDataPoints = (const int)MeasuredPolarizationDataPoints.size();
+    for( int iDataPoint = 0; iDataPoint<NumDataPoints; iDataPoint++ ){
+      double Energy = MeasuredPolarizationDataPoints[iDataPoint][0];
+      double Polarization = MeasuredPolarizationDataPoints[iDataPoint][1];
+      double StatErr = MeasuredPolarizationDataPoints[iDataPoint][2];
+      double SystErrLow = MeasuredPolarizationDataPoints[iDataPoint][3];
+      double SystErrHgh = MeasuredPolarizationDataPoints[iDataPoint][4];
+      double LeftSystErr = 0;
+      double RghtSystErr = 0;
+      double StatXErr = 0.;
+      StatisticalErrorGraph.SetPoint(iDataPoint,Energy,Polarization);
+      StatisticalErrorGraph.SetPointError(iDataPoint,StatXErr,StatXErr,StatErr,StatErr);
+      SystematicErrorGraph.SetPoint(iDataPoint,Energy,Polarization);
+      SystematicErrorGraph.SetPointError(iDataPoint,LeftSystErr,RghtSystErr,SystErrLow,SystErrHgh);
+    } // iDataPoint
   }
 
   void SetCanvas(PgfCanvas &c){
@@ -515,6 +557,30 @@ namespace SplittingFigureTools{
   void DrawData(Graph &StatGraph, Graph &SystGraph){
     StatGraph.SystematicErrorGraph = SystGraph;
     can->AddGraph(StatGraph);
+  }
+
+  void DrawBesISplitting(vector<vector<double>> LambdaPoints, vector<vector<double>> LamBarPoints){
+    vector<vector<double>> SplittingPoints = Splitting(LambdaPoints,LamBarPoints);
+    Graph StatGraph, SystGraph;
+    SetStatAndSystGraphs(StatGraph,SystGraph,SplittingPoints);
+    StatGraph.AddMarkerStyle(BesISplittingMarkerStyle);
+    DrawData(StatGraph,SystGraph);
+  }
+
+  void DrawBesIISplitting(vector<vector<double>> LambdaPoints, vector<vector<double>> LamBarPoints){
+    vector<vector<double>> SplittingPoints = Splitting(LambdaPoints,LamBarPoints);
+    Graph StatGraph, SystGraph;
+    SetStatAndSystGraphs(StatGraph,SystGraph,SplittingPoints);
+    StatGraph.AddMarkerStyle(BesIISplittingMarkerStyle);
+    DrawData(StatGraph,SystGraph);
+  }
+
+  void DrawAliceSplitting(vector<vector<double>> LambdaPoints, vector<vector<double>> LamBarPoints){
+    vector<vector<double>> SplittingPoints = Splitting(LambdaPoints,LamBarPoints);
+    Graph StatGraph, SystGraph;
+    SetStatAndSystGraphs(StatGraph,SystGraph,SplittingPoints);
+    StatGraph.AddMarkerStyle(AliceSplittingMarkerStyle);
+    DrawData(StatGraph,SystGraph);
   }
 
   void DrawBesILambda(Graph &StatGraph, Graph &SystGraph){
@@ -584,26 +650,6 @@ namespace SplittingFigureTools{
     LamBarInnerLegendMarker->SetAnchorPosition(x,y);
     LamBarInnerLegendMarker->Shift(XShift,MarkerYShift);
     can->AddNode(LamBarInnerLegendMarker);
-  }
-
-  void SetStatAndSystGraphs(Graph &StatisticalErrorGraph, Graph &SystematicErrorGraph, vector<vector<double>> MeasuredPolarizationDataPoints, int IsLambda, bool SetLogX = true, bool OffsetX = true){
-    const int NumDataPoints = (const int)MeasuredPolarizationDataPoints.size();
-    double SystErrX = SetLogX?0.12:2; // this is the "width" of the systematic error box in energy (just for visibility)
-    double StatErrX = 0.;
-    for( int iDataPoint = 0; iDataPoint<NumDataPoints; iDataPoint++ ){
-      double Energy = MeasuredPolarizationDataPoints[iDataPoint][0];
-      double Polarization = MeasuredPolarizationDataPoints[iDataPoint][1];
-      double StatErr = MeasuredPolarizationDataPoints[iDataPoint][2];
-      double SystErrLow = MeasuredPolarizationDataPoints[iDataPoint][3];
-      double SystErrHgh = MeasuredPolarizationDataPoints[iDataPoint][4];
-      double LeftSystErr = 0;// (MeasuredPolarizationDataPoints[iDataPoint][3]==0. && MeasuredPolarizationDataPoints[iDataPoint][4]==0.)?0.:!SetLogX?SystErrX:OffsetsOnLogScale(Energy,SystErrX).first;
-      double RghtSystErr = 0;// (MeasuredPolarizationDataPoints[iDataPoint][3]==0. && MeasuredPolarizationDataPoints[iDataPoint][4]==0.)?0.:!SetLogX?SystErrX:OffsetsOnLogScale(Energy,SystErrX).second;
-      double StatXErr = 0.;
-      StatisticalErrorGraph.SetPoint(iDataPoint,Energy,Polarization);
-      StatisticalErrorGraph.SetPointError(iDataPoint,StatXErr,StatXErr,StatErr,StatErr);
-      SystematicErrorGraph.SetPoint(iDataPoint,Energy,Polarization);
-      SystematicErrorGraph.SetPointError(iDataPoint,LeftSystErr,RghtSystErr,SystErrLow,SystErrHgh);
-    } // iDataPoint
   }
 }; // SplittingFigureTools
 
@@ -732,7 +778,6 @@ void Plotter(TString OutputFileCommitHash = "test"){
     },
   };
   vector<vector<double>> StarLambdaPolarizationGraphPoints = {
-    {3.,    4.90823,                  0.81389,                  0.15485,                  0.15485                   },  // from joseph@joseph-Latitude-5590:~/Documents/Coding/OSUResearch/LambdaPolarizationAnalyses/Local/3GeV/Output/Histograms/1630bfc58b466c639cf8e643b4e9f5aafc6a11d5.PolarizationHistograms.root
     {7.7,   AlphaChangeFactor*2.039,  AlphaChangeFactor*0.628,  AlphaChangeFactor*0.2,    AlphaChangeFactor*0.0   },
     {11.5,  AlphaChangeFactor*1.344,  AlphaChangeFactor*0.396,  AlphaChangeFactor*0.2,    AlphaChangeFactor*0.0   },
     {14.5,  AlphaChangeFactor*1.321,  AlphaChangeFactor*0.482,  AlphaChangeFactor*0.3,    AlphaChangeFactor*0.0   },
@@ -741,6 +786,7 @@ void Plotter(TString OutputFileCommitHash = "test"){
     {39.0,  AlphaChangeFactor*0.506,  AlphaChangeFactor*0.424,  AlphaChangeFactor*0.2,    AlphaChangeFactor*0.0   },
     {62.4,  AlphaChangeFactor*1.334,  AlphaChangeFactor*1.167,  AlphaChangeFactor*0.2,    AlphaChangeFactor*0.0   },
     {200.0, AlphaChangeFactor*0.277,  AlphaChangeFactor*0.040,  AlphaChangeFactor*0.049,  AlphaChangeFactor*0.039 },
+    {3.,    4.90823,                  0.81389,                  0.15485,                  0.15485                   },  // from joseph@joseph-Latitude-5590:~/Documents/Coding/OSUResearch/LambdaPolarizationAnalyses/Local/3GeV/Output/Histograms/1630bfc58b466c639cf8e643b4e9f5aafc6a11d5.PolarizationHistograms.root
   };
   vector<vector<double>> StarLamBarPolarizationGraphPoints = {
     {7.7,   AlphaChangeFactor*8.669,  AlphaChangeFactor*3.569,  AlphaChangeFactor*1.00,   AlphaChangeFactor*0.0   },
@@ -819,17 +865,17 @@ void Plotter(TString OutputFileCommitHash = "test"){
     MyTexFile.AddCanvas(RapidityCanvas);
 
     Graph StarBesILambdaStat, StarBesILambdaSyst;
-    SplittingFigureTools::SetStatAndSystGraphs(StarBesILambdaStat,StarBesILambdaSyst,StarLambdaPolarizationGraphPoints,true);
+    SplittingFigureTools::SetStatAndSystGraphs(StarBesILambdaStat,StarBesILambdaSyst,StarLambdaPolarizationGraphPoints);
     Graph StarBesILamBarStat, StarBesILamBarSyst;
-    SplittingFigureTools::SetStatAndSystGraphs(StarBesILamBarStat,StarBesILamBarSyst,StarLamBarPolarizationGraphPoints,true);
+    SplittingFigureTools::SetStatAndSystGraphs(StarBesILamBarStat,StarBesILamBarSyst,StarLamBarPolarizationGraphPoints);
     Graph StarBesIILambdaStat, StarBesIILambdaSyst;
-    SplittingFigureTools::SetStatAndSystGraphs(StarBesIILambdaStat,StarBesIILambdaSyst,NineteenGeVLambdaPolarizationGraphPoints,true);
+    SplittingFigureTools::SetStatAndSystGraphs(StarBesIILambdaStat,StarBesIILambdaSyst,NineteenGeVLambdaPolarizationGraphPoints);
     Graph StarBesIILamBarStat, StarBesIILamBarSyst;
-    SplittingFigureTools::SetStatAndSystGraphs(StarBesIILamBarStat,StarBesIILamBarSyst,NineteenGeVLamBarPolarizationGraphPoints,true);
+    SplittingFigureTools::SetStatAndSystGraphs(StarBesIILamBarStat,StarBesIILamBarSyst,NineteenGeVLamBarPolarizationGraphPoints);
     Graph AliceLambdaStat, AliceLambdaSyst;
-    SplittingFigureTools::SetStatAndSystGraphs(AliceLambdaStat,AliceLambdaSyst,AlicLambdaPolarizationGraphPoints,true);
+    SplittingFigureTools::SetStatAndSystGraphs(AliceLambdaStat,AliceLambdaSyst,AlicLambdaPolarizationGraphPoints);
     Graph AliceLamBarStat, AliceLamBarSyst;
-    SplittingFigureTools::SetStatAndSystGraphs(AliceLamBarStat,AliceLamBarSyst,AlicLamBarPolarizationGraphPoints,true);
+    SplittingFigureTools::SetStatAndSystGraphs(AliceLamBarStat,AliceLamBarSyst,AlicLamBarPolarizationGraphPoints);
 
     PgfCanvas EnergyCanvas(1,2);
       PgfCanvas EnergyCanvasTopPanelZoom(1,1);
@@ -843,6 +889,7 @@ void Plotter(TString OutputFileCommitHash = "test"){
       // EnergyCanvas.AddZoomInset(EnergyCanvasTopPanelZoom);
       TexFile ZoomInsetFile("temp_ZoomInset_Top");
       ZoomInsetFile.AddCanvas(EnergyCanvasTopPanelZoom);
+    EnergyCanvas.DrawZeroLines();
     EnergyCanvas.SetLogX();
     EnergyCanvas.SetXRanges(1.5,9000);
     EnergyCanvas.cd(0,0);
@@ -859,6 +906,9 @@ void Plotter(TString OutputFileCommitHash = "test"){
     EnergyCanvas.SetYRange(-1.6,2.4);
     EnergyCanvas.SetXTitle("\\sNN");
     EnergyCanvas.SetYTitle("P_{\\bar{\\Lambda}}-P_{\\Lambda}~(\\%)");
+    SplittingFigureTools::DrawBesISplitting(StarLambdaPolarizationGraphPoints,StarLamBarPolarizationGraphPoints);
+    SplittingFigureTools::DrawBesIISplitting(NineteenGeVLambdaPolarizationGraphPoints,NineteenGeVLamBarPolarizationGraphPoints);
+    SplittingFigureTools::DrawAliceSplitting(AlicLambdaPolarizationGraphPoints,AlicLamBarPolarizationGraphPoints);
     MyTexFile.AddCanvas(EnergyCanvas);
 
     double Res19GeV[] = {0.2048, 0.371, 0.4768, 0.5418, 0.5773, 0.5924, 0.5932, 0.5826, 0.563, 0.5343, 0.495, 0.4474, 0.399, 0.3499, 0.3015, 0.2599};
