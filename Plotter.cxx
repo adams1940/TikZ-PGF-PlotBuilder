@@ -1,12 +1,3 @@
-class PgfCanvas;
-class TexFile;
-double EnergyShift = 0.03;
-
-pair<double, double> OffsetsOnLogScale(double Value, double RelativeOffset){
-  pair<double, double> Offsets(RelativeOffset*exp(2.*log(Value)-log(RelativeOffset*Value+Value)),Value*RelativeOffset);
-  return Offsets;
-} // OffsetsOnLogScale
-
 struct Axis{
     double Min, Max;
     int NumMinorTicks;
@@ -138,6 +129,10 @@ struct ErrorBar{
 
 class Graph : public TGraphAsymmErrors{
 private:
+    pair<double, double> OffsetsOnLogScale(double Value, double RelativeOffset){
+      pair<double, double> Offsets(RelativeOffset*exp(2.*log(Value)-log(RelativeOffset*Value+Value)),Value*RelativeOffset);
+      return Offsets;
+    } // OffsetsOnLogScale
 
 public:
     vector<Marker> MarkerStyles;
@@ -149,6 +144,8 @@ public:
     TString LineColor;
     double XShiftDistance, YShiftDistance;
     TGraphAsymmErrors SystematicErrorGraph;
+    double SystematicErrorBoxWidth;
+    double LogScaleSystematicErrorBoxWidth;
 
     Graph(){
         DrawXError = true;
@@ -159,11 +156,38 @@ public:
         LineColor = "blue";
         XShiftDistance = 0;
         YShiftDistance = 0;
+        SystematicErrorBoxWidth = 0.05; // As a fraction of the axis width
+        LogScaleSystematicErrorBoxWidth = 0.25; // As... something related to the fraction of the axis width
     }    
     virtual ~Graph(){}
 
     void AddMarkerStyle(Marker MarkerStyle){
       MarkerStyles.push_back(MarkerStyle);
+    }
+
+    vector<TString> SystematicErrorBoxLatexLines(Axis * XAxis = NULL){ // only need to pass XAxis pointer if you want to change error box width... This could be done in some clever way with lengths in mm
+      vector<TString> LatexLines;
+      for( int iPoint=0; iPoint<SystematicErrorGraph.GetN(); iPoint++ ){
+        double MinX, MaxX;
+        double X = SystematicErrorGraph.GetPointX(iPoint), Y = SystematicErrorGraph.GetPointY(iPoint);
+        if( XAxis ){
+          if( !(XAxis->IsLog) ){
+            double AxisWidth = XAxis->Max-XAxis->Min;
+            MinX = X-.5*SystematicErrorBoxWidth*AxisWidth;
+            MaxX = X+.5*SystematicErrorBoxWidth*AxisWidth;
+          }
+          else{
+            MinX = X-OffsetsOnLogScale(X,.5*LogScaleSystematicErrorBoxWidth).first;
+            MaxX = X+OffsetsOnLogScale(X,.5*LogScaleSystematicErrorBoxWidth).second;
+          }
+        } // if( XAxis )
+        else{
+          MinX = X-SystematicErrorGraph.GetErrorXlow(iPoint);
+          MaxX = X+SystematicErrorGraph.GetErrorXhigh(iPoint);
+        }
+        LatexLines.push_back(Form("\\draw[thick, xshift=%fmm, yshift=%fmm] (axis cs: %f,%f) rectangle (axis cs: %f,%f);",XShiftDistance,YShiftDistance,MinX,Y-SystematicErrorGraph.GetErrorYlow(iPoint),MaxX,Y+SystematicErrorGraph.GetErrorYhigh(iPoint)));
+      } // iPoint
+      return LatexLines;
     }
 
     vector<Marker> MarkerNodes(){
@@ -426,6 +450,7 @@ public:
                     }
                     AddPictureLine("\t };");
 
+                    for( TString LatexLine:gr.SystematicErrorBoxLatexLines(&XAxis) ) AddPictureLine(LatexLine);
                     for( Marker grMark:gr.MarkerNodes() ) AddPictureLine(grMark.NodeText());
 
                 }
@@ -456,7 +481,7 @@ namespace SplittingFigureTools{
   double BesISizeFactor;
 
   void SetMarkerStyles(){
-    XShift = 1;
+    XShift = .5;
     BesISizeFactor = 0.7;
     BesIILambdaMarkerStyle.Shape = "star";
     BesIILambdaMarkerStyle.FillColor = "LambdaFillColor";
@@ -487,22 +512,9 @@ namespace SplittingFigureTools{
     can = &c;
   }
 
-  void DrawData(Graph &StatGraph, Graph &SystGraph, bool IsLambda, bool IsNewResult){
-
-    can->AddGraph(StatGraph);
-
-    double SystBoxWidthFactor=0.4;
-    for( int iPoint=0; iPoint<SystGraph.GetN(); iPoint++ ){
-      can->AddNode(Form("\\draw[thick] (axis cs: %f,%f) rectangle (axis cs: %f,%f);",SystGraph.GetPointX(iPoint)-SystBoxWidthFactor*StatGraph.GetErrorX(0),SystGraph.GetPointY(iPoint)-SystGraph.GetErrorY(iPoint),SystGraph.GetPointX(iPoint)+SystBoxWidthFactor*StatGraph.GetErrorX(0),SystGraph.GetPointY(iPoint)+SystGraph.GetErrorY(iPoint)));
-    }
-  } // DrawData
-
   void DrawData(Graph &StatGraph, Graph &SystGraph){
+    StatGraph.SystematicErrorGraph = SystGraph;
     can->AddGraph(StatGraph);
-    double SystBoxWidthFactor=0.4;
-    for( int iPoint=0; iPoint<SystGraph.GetN(); iPoint++ ){
-      can->AddNode(Form("\\draw[thick] (axis cs: %f,%f) rectangle (axis cs: %f,%f);",SystGraph.GetPointX(iPoint)-SystBoxWidthFactor*StatGraph.GetErrorX(0),SystGraph.GetPointY(iPoint)-SystGraph.GetErrorY(iPoint),SystGraph.GetPointX(iPoint)+SystBoxWidthFactor*StatGraph.GetErrorX(0),SystGraph.GetPointY(iPoint)+SystGraph.GetErrorY(iPoint)));
-    }
   }
 
   void DrawBesILambda(Graph &StatGraph, Graph &SystGraph){
@@ -580,14 +592,12 @@ namespace SplittingFigureTools{
     double StatErrX = 0.;
     for( int iDataPoint = 0; iDataPoint<NumDataPoints; iDataPoint++ ){
       double Energy = MeasuredPolarizationDataPoints[iDataPoint][0];
-      if( OffsetX && IsLambda ) Energy -= OffsetsOnLogScale(Energy,EnergyShift).first;
-      if( OffsetX && !IsLambda ) Energy += OffsetsOnLogScale(Energy,EnergyShift).second;
       double Polarization = MeasuredPolarizationDataPoints[iDataPoint][1];
       double StatErr = MeasuredPolarizationDataPoints[iDataPoint][2];
       double SystErrLow = MeasuredPolarizationDataPoints[iDataPoint][3];
       double SystErrHgh = MeasuredPolarizationDataPoints[iDataPoint][4];
-      double LeftSystErr = (MeasuredPolarizationDataPoints[iDataPoint][3]==0. && MeasuredPolarizationDataPoints[iDataPoint][4]==0.)?0.:!SetLogX?SystErrX:OffsetsOnLogScale(Energy,SystErrX).first;
-      double RghtSystErr = (MeasuredPolarizationDataPoints[iDataPoint][3]==0. && MeasuredPolarizationDataPoints[iDataPoint][4]==0.)?0.:!SetLogX?SystErrX:OffsetsOnLogScale(Energy,SystErrX).second;
+      double LeftSystErr = 0;// (MeasuredPolarizationDataPoints[iDataPoint][3]==0. && MeasuredPolarizationDataPoints[iDataPoint][4]==0.)?0.:!SetLogX?SystErrX:OffsetsOnLogScale(Energy,SystErrX).first;
+      double RghtSystErr = 0;// (MeasuredPolarizationDataPoints[iDataPoint][3]==0. && MeasuredPolarizationDataPoints[iDataPoint][4]==0.)?0.:!SetLogX?SystErrX:OffsetsOnLogScale(Energy,SystErrX).second;
       double StatXErr = 0.;
       StatisticalErrorGraph.SetPoint(iDataPoint,Energy,Polarization);
       StatisticalErrorGraph.SetPointError(iDataPoint,StatXErr,StatXErr,StatErr,StatErr);
@@ -690,14 +700,14 @@ void Plotter(TString OutputFileCommitHash = "test"){
   double AlphaChangeFactor = 0.642/0.732;  // old/new
   vector<vector<double>> NineteenGeVLambdaPolarizationGraphPoints = {
     {
-      19.6+OffsetsOnLogScale(19.6,1.*EnergyShift).second, // 044666513c03b24ef87a6361ff6394455d9acde8
+      19.6, // 044666513c03b24ef87a6361ff6394455d9acde8
       0.9152,
       0.0503,
       0.0172,
       0.0172,
     },
     {
-      27+OffsetsOnLogScale(27,1.*EnergyShift).second,
+      27,
       0.7168,
       0.0553,
       0.0143,
@@ -707,14 +717,14 @@ void Plotter(TString OutputFileCommitHash = "test"){
   vector<double> NineteenGeVEnergies; for( int i=0; i<NineteenGeVLambdaPolarizationGraphPoints.size(); i++ ) NineteenGeVEnergies.push_back(NineteenGeVLambdaPolarizationGraphPoints[i][0]);
   vector<vector<double>> NineteenGeVLamBarPolarizationGraphPoints = {
     {
-      19.6+OffsetsOnLogScale(19.6,1.*EnergyShift).second, // 5cae15284111395d6a12676b1db189ad894d4e4c
+      19.6, // 5cae15284111395d6a12676b1db189ad894d4e4c
       0.8976,
       0.1170,
       0.0171,
       0.0171,
     },
     {
-      27+OffsetsOnLogScale(27,1.*EnergyShift).second,
+      27,
       0.8257,
       0.1046,
       0.0163,
@@ -726,8 +736,8 @@ void Plotter(TString OutputFileCommitHash = "test"){
     {7.7,   AlphaChangeFactor*2.039,  AlphaChangeFactor*0.628,  AlphaChangeFactor*0.2,    AlphaChangeFactor*0.0   },
     {11.5,  AlphaChangeFactor*1.344,  AlphaChangeFactor*0.396,  AlphaChangeFactor*0.2,    AlphaChangeFactor*0.0   },
     {14.5,  AlphaChangeFactor*1.321,  AlphaChangeFactor*0.482,  AlphaChangeFactor*0.3,    AlphaChangeFactor*0.0   },
-    {19.6-OffsetsOnLogScale(19.6,1.*EnergyShift).first,  AlphaChangeFactor*0.950,  AlphaChangeFactor*0.305,  AlphaChangeFactor*0.2,    AlphaChangeFactor*0.0   },
-    {27.0-OffsetsOnLogScale(27,1.*EnergyShift).first,  AlphaChangeFactor*1.047,  AlphaChangeFactor*0.282,  AlphaChangeFactor*0.2,    AlphaChangeFactor*0.0   },
+    {19.6,  AlphaChangeFactor*0.950,  AlphaChangeFactor*0.305,  AlphaChangeFactor*0.2,    AlphaChangeFactor*0.0   },
+    {27.0,  AlphaChangeFactor*1.047,  AlphaChangeFactor*0.282,  AlphaChangeFactor*0.2,    AlphaChangeFactor*0.0   },
     {39.0,  AlphaChangeFactor*0.506,  AlphaChangeFactor*0.424,  AlphaChangeFactor*0.2,    AlphaChangeFactor*0.0   },
     {62.4,  AlphaChangeFactor*1.334,  AlphaChangeFactor*1.167,  AlphaChangeFactor*0.2,    AlphaChangeFactor*0.0   },
     {200.0, AlphaChangeFactor*0.277,  AlphaChangeFactor*0.040,  AlphaChangeFactor*0.049,  AlphaChangeFactor*0.039 },
@@ -736,8 +746,8 @@ void Plotter(TString OutputFileCommitHash = "test"){
     {7.7,   AlphaChangeFactor*8.669,  AlphaChangeFactor*3.569,  AlphaChangeFactor*1.00,   AlphaChangeFactor*0.0   },
     {11.5,  AlphaChangeFactor*1.802,  AlphaChangeFactor*1.261,  AlphaChangeFactor*0.15,   AlphaChangeFactor*0.0   },
     {14.5,  AlphaChangeFactor*2.276,  AlphaChangeFactor*1.210,  AlphaChangeFactor*0.15,   AlphaChangeFactor*0.4   },
-    {19.6-OffsetsOnLogScale(19.6,1.*EnergyShift).first,  AlphaChangeFactor*1.515,  AlphaChangeFactor*0.610,  AlphaChangeFactor*0.15,   AlphaChangeFactor*0.0   },
-    {27.0-OffsetsOnLogScale(27,1.*EnergyShift).first,  AlphaChangeFactor*1.245,  AlphaChangeFactor*0.471,  AlphaChangeFactor*0.15,   AlphaChangeFactor*0.0   },
+    {19.6,  AlphaChangeFactor*1.515,  AlphaChangeFactor*0.610,  AlphaChangeFactor*0.15,   AlphaChangeFactor*0.0   },
+    {27.0,  AlphaChangeFactor*1.245,  AlphaChangeFactor*0.471,  AlphaChangeFactor*0.15,   AlphaChangeFactor*0.0   },
     {39.0,  AlphaChangeFactor*0.938,  AlphaChangeFactor*0.615,  AlphaChangeFactor*0.15,   AlphaChangeFactor*0.0   },
     {62.4,  AlphaChangeFactor*1.712,  AlphaChangeFactor*1.592,  AlphaChangeFactor*0.15,   AlphaChangeFactor*0.0   },
     {200.0, AlphaChangeFactor*0.240,  AlphaChangeFactor*0.045,  AlphaChangeFactor*0.045,  AlphaChangeFactor*0.061 },
