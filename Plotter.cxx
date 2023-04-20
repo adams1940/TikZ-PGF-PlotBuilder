@@ -1,489 +1,14 @@
 TString sNNTitle = "\\sqrt{s_\\mathrm{NN}}";
 
-vector<vector<double>> Splitting(vector<vector<double>> LambdaPoints, vector<vector<double>> LamBarPoints){
-  vector<vector<double>> Differences;
-  for( int iEnergy = 0; iEnergy<LamBarPoints.size(); iEnergy++ ){
-    if( LambdaPoints[iEnergy][0]==3 ) break;
-    vector<double> Diff;
-    Diff.push_back(LambdaPoints[iEnergy][0]);
-    Diff.push_back(LamBarPoints[iEnergy][1]-LambdaPoints[iEnergy][1]);
-    Diff.push_back(sqrt(pow(LamBarPoints[iEnergy][2],2)+pow(LambdaPoints[iEnergy][2],2)));
-    Diff.push_back(sqrt(pow(LamBarPoints[iEnergy][3],2)+pow(LambdaPoints[iEnergy][3],2)));
-    Diff.push_back(sqrt(pow(LamBarPoints[iEnergy][4],2)+pow(LambdaPoints[iEnergy][4],2)));
-    Differences.push_back(Diff);
-  }
-  return Differences;
-} // Splitting
-
-struct Axis{
-    double Min, Max;
-    int NumMinorTicks;
-    vector<double> CustomMajorTicks, CustomMinorTicks;
-    TString Title, TitleSize;
-    bool IsLog;
-    Axis(){
-        NumMinorTicks = 4;
-        Min = 0;
-        Max = 1;
-        TitleSize = "\\large";
-        IsLog = false;
-    }
-    virtual ~Axis(){};
-}; // Axis
-
-struct Node{
-  TString OutlineColor, FillColor;
-  vector<TString> Options;
-  TString Anchor, Align;
-  double AnchorX, AnchorY; // axis cs
-  double ShiftX, ShiftY; // mm
-  TString Text;
-  bool IncludeDraw;
-  
-  Node(double x = 0, double y = 0):AnchorX(x),AnchorY(y){
-    Anchor = "center";
-    Align = "center";
-    IncludeDraw = "true";
-    ShiftX = 0;
-    ShiftY = 0;
-  }
-  virtual ~Node(){}
-
-  void SetAnchorPosition(double x, double y){
-    AnchorX = x;
-    AnchorY = y;
-  }
-
-  void Shift(double x, double y){
-    ShiftX = x;
-    ShiftY = y;
-  }
-
-  virtual TString NodeText(){
-    if( OutlineColor!="" ) Options.push_back(Form("color=%s",OutlineColor.Data()));
-    if( FillColor!="" ) Options.push_back(Form("fill=%s",FillColor.Data()));
-    if( ShiftX!=0 ) Options.push_back(Form("xshift=%fmm",ShiftX));
-    if( ShiftY!=0 ) Options.push_back(Form("yshift=%fmm",ShiftY));
-    Options.push_back(Form("anchor=%s",Anchor.Data()));
-    Options.push_back(Form("align=%s",Align.Data()));
-    TString OptionsWithCommas;
-    for( TString Option:Options ) OptionsWithCommas.Append(Form("%s, ",Option.Data()));
-    return Form("\\node[%s%s] at (axis cs: %f,%f){%s};",OptionsWithCommas.Data(),IncludeDraw?"draw":"",AnchorX,AnchorY,Text.Data());
-  }
-};
-
-struct Marker : public Node{
-  public:
-    double Size, OutlineWidthScale;
-    TString Shape;
-    double StarPointRatio;
-
-    Marker(double x = 0, double y = 0){
-        AnchorX = x;
-        AnchorY = y;
-        StarPointRatio = 2.618034;
-        OutlineColor="black";
-        FillColor = "blue";
-        Size = 3; // mm
-        OutlineWidthScale = 0.05;
-        Shape = "circle";
-    }
-    virtual ~Marker(){}
-
-    TString NodeText(){
-      Options.push_back("inner sep=0pt");
-      Options.push_back(Form("minimum size=%fmm",Size));
-      Options.push_back(Form("line width=%fmm",OutlineWidthScale*Size));
-      Options.push_back(Shape.Data());
-      if( Shape=="star" ) Options.push_back(Form("star point ratio=%f",StarPointRatio));
-      return Node::NodeText();
-    }
-};
-
-struct Box : public Node{
-  private:
-    TString Shape;
-  public:
-    double Width, Height;
-    Box(double x = 0, double y = 0){
-      AnchorX = x;
-      AnchorY = y;
-      Shape="rectangle";
-      FillColor="white";
-      Width = 10; //mm
-      Height = 10;
-    }
-    virtual ~Box(){}
-
-    TString NodeText(){
-      Options.push_back(Form("minimum width=%fmm",Width));
-      Options.push_back(Form("minimum height=%fmm",Height));
-      return Node::NodeText();
-    }
-};
-
-struct TextBox : public Node{
-  TextBox(double x = 0, double y = 0){
-    AnchorX = x;
-    AnchorY = y;
-    IncludeDraw = false;
-  }
-  void DrawBorder(bool yn){
-    IncludeDraw = yn;
-  }
-};
-
-struct ErrorBar{
-    double Width;
-    TString Color;
-
-    ErrorBar(){
-        Width = 0.3; // mm
-        Color = "black";
-    }
-    virtual ~ErrorBar(){}
-}; // ErrorBar
-
-class Graph : public TGraphAsymmErrors{
-private:
-    pair<double, double> OffsetsOnLogScale(double Value, double RelativeOffset){
-      pair<double, double> Offsets(RelativeOffset*exp(2.*log(Value)-log(RelativeOffset*Value+Value)),Value*RelativeOffset);
-      return Offsets;
-    } // OffsetsOnLogScale
-
-public:
-    vector<Marker> MarkerStyles;
-    ErrorBar ErrorBarStyle;
-    bool DrawXError, DrawYError;
-    bool DrawLines;
-    bool OnlyDrawLines;
-    double LineWidth;
-    TString LineColor;
-    double XShiftDistance, YShiftDistance;
-    TGraphAsymmErrors SystematicErrorGraph;
-    double SystematicErrorBoxWidth;
-    double LogScaleSystematicErrorBoxWidth;
-
-    Graph(){
-        DrawXError = true;
-        DrawYError = true;
-        DrawLines = false;
-        OnlyDrawLines = false;
-        LineWidth = 0.2; // mm
-        LineColor = "blue";
-        XShiftDistance = 0;
-        YShiftDistance = 0;
-        SystematicErrorBoxWidth = 0.05; // As a fraction of the axis width
-        LogScaleSystematicErrorBoxWidth = 0.25; // As... something related to the fraction of the axis width
-    }    
-    virtual ~Graph(){}
-
-    void AddMarkerStyle(Marker MarkerStyle){
-      MarkerStyles.push_back(MarkerStyle);
-    }
-
-    vector<TString> SystematicErrorBoxLatexLines(Axis * XAxis = NULL){ // only need to pass XAxis pointer if you want to change error box width... This could be done in some clever way with lengths in mm
-      vector<TString> LatexLines;
-      for( int iPoint=0; iPoint<SystematicErrorGraph.GetN(); iPoint++ ){
-        double MinX, MaxX;
-        double X = SystematicErrorGraph.GetPointX(iPoint), Y = SystematicErrorGraph.GetPointY(iPoint);
-        if( XAxis ){
-          if( !(XAxis->IsLog) ){
-            double AxisWidth = XAxis->Max-XAxis->Min;
-            MinX = X-.5*SystematicErrorBoxWidth*AxisWidth;
-            MaxX = X+.5*SystematicErrorBoxWidth*AxisWidth;
-          }
-          else{
-            MinX = X-OffsetsOnLogScale(X,.5*LogScaleSystematicErrorBoxWidth).first;
-            MaxX = X+OffsetsOnLogScale(X,.5*LogScaleSystematicErrorBoxWidth).second;
-          }
-        } // if( XAxis )
-        else{
-          MinX = X-SystematicErrorGraph.GetErrorXlow(iPoint);
-          MaxX = X+SystematicErrorGraph.GetErrorXhigh(iPoint);
-        }
-        LatexLines.push_back(Form("\\draw[thick, xshift=%fmm, yshift=%fmm] (axis cs: %f,%f) rectangle (axis cs: %f,%f);",XShiftDistance,YShiftDistance,MinX,Y-SystematicErrorGraph.GetErrorYlow(iPoint),MaxX,Y+SystematicErrorGraph.GetErrorYhigh(iPoint)));
-      } // iPoint
-      return LatexLines;
-    }
-
-    vector<Marker> MarkerNodes(){
-      vector<Marker> Nodes;
-      for( Marker MarkerStyle:MarkerStyles ){
-        for( int iPoint=0; iPoint<this->GetN(); iPoint++ ){
-          if( XShiftDistance!=0 ) MarkerStyle.ShiftX = XShiftDistance;
-          if( YShiftDistance!=0 ) MarkerStyle.ShiftY = YShiftDistance;
-          MarkerStyle.SetAnchorPosition(this->GetPointX(iPoint),this->GetPointY(iPoint));
-          Nodes.push_back(MarkerStyle);
-        }
-      }
-      return Nodes;
-    }
-}; // Graph
-
-class PgfCanvas{
-private:
-
-public:
-    int ActivePadX, ActivePadY;
-    int NumDivisionsX, NumDivisionsY;
-    double Width, Height; // mm
-    vector<Axis> XAxes, YAxes;
-    vector<Graph> Graphs[10][10]; // Ideally would be [NumDivisionsX][NumDivisionsY]
-    vector<TString> AdditionalNodes[10][10]; // Ideally would be [NumDivisionsX][NumDivisionsY]
-    vector<Node*> Nodes[10][10]; // Ideally would be [NumDivisionsX][NumDivisionsY]
-    vector<vector<bool>> DrawZeroLinesVector;
-    double XLabelOffsetY, YLabelOffsetX;
-
-    PgfCanvas(int NX = 1, int NY = 1):NumDivisionsX(NX),NumDivisionsY(NY){
-        Width = 100/(double)NX;
-        Height = 0.9*Width;
-        XAxes.resize(NX);
-        YAxes.resize(NY);
-        XLabelOffsetY = -0.07;
-        YLabelOffsetX = -0.161;
-        for( int iX=0; iX<NX; iX++ ) DrawZeroLinesVector.push_back(vector<bool>(NY));
-        cd();
-    }
-    virtual ~PgfCanvas(){}
-
-    void cd(int X = 0, int Y = 0){
-        if( X>=NumDivisionsX || Y>=NumDivisionsY ){
-            cout<<"Error: This pad doesn't exist!"<<endl;
-            gApplication->Terminate();
-        }
-        ActivePadX = X;
-        ActivePadY = Y;
-    }
-
-    Axis& ActiveXAxis(){ return XAxes[ActivePadX]; }
-    Axis& ActiveYAxis(){ return YAxes[ActivePadY]; }
-
-    void AddGraph(Graph gr){
-        Graphs[ActivePadX][ActivePadY].push_back(gr);
-    }
-
-    void SetXTitle(TString Title){
-      XAxes[ActivePadX].Title = Title;
-    }
-
-    void SetYTitle(TString Title){
-      YAxes[ActivePadY].Title = Title;
-    }
-
-    void SetXYTitles(TString XTitle, TString YTitle){
-      for( Axis &axis:XAxes ) axis.Title = XTitle;
-      for( Axis &axis:YAxes ) axis.Title = YTitle;
-    }
-
-    void SetXRange(double Min, double Max){
-      XAxes[ActivePadX].Min = Min;
-      XAxes[ActivePadX].Max = Max;
-    }
-
-    void SetYRange(double Min, double Max){
-      YAxes[ActivePadY].Min = Min;
-      YAxes[ActivePadY].Max = Max;
-    }
-
-    void SetXRanges(double Min, double Max){
-      for( Axis &axis:XAxes ){
-        axis.Min = Min;
-        axis.Max = Max;
-      }
-    }
-
-    void SetYRanges(double Min, double Max){
-      for( Axis &axis:YAxes ){
-        axis.Min = Min;
-        axis.Max = Max;
-      }
-    }
-
-    void SetLogX(){
-      for( Axis &axis:XAxes ) axis.IsLog=true;
-    }
-
-    void DrawZeroLines(){
-      for( int iX=0; iX<NumDivisionsX; iX++ ){
-        for( int iY=0; iY<NumDivisionsY; iY++ ){
-          DrawZeroLinesVector[iX][iY] = true;
-        }
-      }
-    }
-
-    void DrawZeroLine(){
-      DrawZeroLinesVector[ActivePadX][ActivePadY] = true;
-    }
-
-    void AddNode(TString Text){
-      AdditionalNodes[ActivePadX][ActivePadY].push_back(Text);
-    }
-
-    void AddNode(Node * node){
-      Nodes[ActivePadX][ActivePadY].push_back(node);
-    }
-
-    // void AddZoomInset(PgfCanvas &can){
-    //   TexFile ZoomInsetFile(Form("temp_ZoomInset_X%iY%i",ActivePadX,ActivePadY));
-    //   ZoomInsetFile.AddCanvas(can);
-    // }
-}; // PgfCanvas
-
-class TexFile{
-private:
-    int FigureCounter = 0;
-
-public:
-    TString FileName;
-    ofstream File;
-
-    TexFile(TString Name):FileName(Name){
-        gSystem->Exec(Form("mkdir -p Output/%s",Name.Data()));
-        File.open(Form("Output/%s/%s.tex",Name.Data(),Name.Data()));
-        File<<"\\batchmode\n";
-        File<<"\\documentclass[class=article,10pt,border=1pt]{standalone}\n";
-        File<<"\\usepackage[utf8]{inputenc}\n";
-        File<<"\\usepackage{bm}\n";
-        File<<"\\usepackage{pgf, pgfplots, pgfplotstable}\n";
-        File<<"\\pgfplotsset{width=12cm,height=10cm,compat=1.16}\n";
-        File<<"\\usepgfmodule{oo}\n";
-        File<<"\\usepgflibrary{shapes}\n";
-        File<<"\\usepackage{catchfile}\n";
-        File<<"\\usepackage{tikz}\n";
-        File<<"\\usetikzlibrary{patterns}\n";
-        File<<"\\usetikzlibrary{shadows}\n";
-        File<<"\\usepackage{amsmath}\n";
-        File<<"\\usetikzlibrary{external}\n";
-        File<<"\\tikzexternalize\n";
-        File<<"\\usepackage{calc}\n";
-        File<<"\n";
-        File<<"\\begin{document}\n";
-        File<<"\n";
-    } // TexFile 
-    
-    virtual ~TexFile(){
-        File<<"\\end{document}";
-        File.close();
-        gSystem->Exec(Form("cd Output/%s; pdflatex -shell-escape %s; cd ../../",FileName.Data(),FileName.Data()));
-    } // ~TexFile
-
-    void AddCanvas(PgfCanvas Canvas){
-        File<<"%%%%%%%%%%%%%%%%%%%%%%%% figure "<<FigureCounter++<<" below %%%%%%%%%%%%%%%%%%%%%%%%\n";
-        File<<"\\begin{tikzpicture}\n";
-        for( int ColumnY=0; ColumnY<Canvas.NumDivisionsY; ColumnY++ ){
-            Axis YAxis = Canvas.YAxes[ColumnY];
-            for( int ColumnX=0; ColumnX<Canvas.NumDivisionsX; ColumnX++ ){
-                Axis XAxis = Canvas.XAxes[ColumnX];
-                AddPictureLine("\\begin{axis}[");
-
-                AddAxisOption(Form("width=%fmm",Canvas.Width));
-                AddAxisOption(Form("height=%fmm",Canvas.Height));
-
-                AddAxisOption(Form("xmin=%f",XAxis.Min));
-                AddAxisOption(Form("xmax=%f",XAxis.Max));
-                AddAxisOption(Form("ymin=%f",YAxis.Min));
-                AddAxisOption(Form("ymax=%f",YAxis.Max));
-                AddAxisOption(Form("x label style={at={(1,%f)},anchor=north east}",Canvas.XLabelOffsetY));
-                AddAxisOption(Form("y label style={at={(%f,1)},anchor=north east}",Canvas.YLabelOffsetX));
-                if( XAxis.IsLog ) AddAxisOption("xmode=log");
-                if( YAxis.IsLog ) AddAxisOption("ymode=log");
-
-                AddAxisOption(Form("name=%s",CanvasName(ColumnX,ColumnY).Data()));
-                if( !(ColumnX==0 && ColumnY==0) ){
-                    if( ColumnX==0 ){
-                        AddAxisOption(Form("at=(%s.south)",CanvasName(ColumnX,ColumnY-1).Data()));
-                        AddAxisOption("anchor=north");
-                    }
-                    else{
-                        AddAxisOption(Form("at=(%s.east)",CanvasName(ColumnX-1,ColumnY).Data()));
-                        AddAxisOption("anchor=west");
-                    }
-                }
-
-                if( ColumnY<Canvas.NumDivisionsY-1 ) AddAxisOption("xticklabels={}");
-                else AddAxisOption(Form("xlabel={%s\\(%s\\)}",XAxis.TitleSize.Data(),XAxis.Title.Data()));
-                if( ColumnX>0 ) AddAxisOption("yticklabels={}");
-                else AddAxisOption(Form("ylabel={%s\\(%s\\)}",YAxis.TitleSize.Data(),YAxis.Title.Data()));
-
-                if( XAxis.CustomMajorTicks.size()>0 ){
-                    TString CustomMajorTicksString = "{";
-                    { // Put this method in a custom vector class?
-                        for( int i=0; i<XAxis.CustomMajorTicks.size()-1; i++ ) CustomMajorTicksString.Append(Form("%f, ",XAxis.CustomMajorTicks[i]));
-                        CustomMajorTicksString.Append(Form("%f}",XAxis.CustomMajorTicks[XAxis.CustomMajorTicks.size()-1]));
-                    }
-                    AddAxisOption(Form("xtick=%s",CustomMajorTicksString.Data()));
-                }
-                if( YAxis.CustomMajorTicks.size()>0 ){
-                    TString CustomMajorTicksString = "{";
-                    { // Put this method in a custom vector class?
-                        for( int i=0; i<YAxis.CustomMajorTicks.size()-1; i++ ) CustomMajorTicksString.Append(Form("%f, ",YAxis.CustomMajorTicks[i]));
-                        CustomMajorTicksString.Append(Form("%f}",YAxis.CustomMajorTicks[YAxis.CustomMajorTicks.size()-1]));
-                    }
-                    AddAxisOption(Form("ytick=%s",CustomMajorTicksString.Data()));
-                }
-                if( XAxis.CustomMinorTicks.size()>0 ){
-                    TString CustomMinorTicksString = "{";
-                    { // Put this method in a custom vector class?
-                        for( int i=0; i<XAxis.CustomMinorTicks.size()-1; i++ ) CustomMinorTicksString.Append(Form("%f, ",XAxis.CustomMinorTicks[i]));
-                        CustomMinorTicksString.Append(Form("%f}",XAxis.CustomMinorTicks[XAxis.CustomMinorTicks.size()-1]));
-                    }
-                    AddAxisOption(Form("minor xtick=%s",CustomMinorTicksString.Data()));
-                }
-                AddAxisOption(Form("minor x tick num = %i",XAxis.NumMinorTicks));
-                if( YAxis.CustomMinorTicks.size()>0 ){
-                    TString CustomMinorTicksString = "{";
-                    { // Put this method in a custom vector class?
-                        for( int i=0; i<YAxis.CustomMinorTicks.size()-1; i++ ) CustomMinorTicksString.Append(Form("%f, ",YAxis.CustomMinorTicks[i]));
-                        CustomMinorTicksString.Append(Form("%f}",YAxis.CustomMinorTicks[YAxis.CustomMinorTicks.size()-1]));
-                    }
-                    AddAxisOption(Form("minor ytick=%s",CustomMinorTicksString.Data()));
-                }
-                AddAxisOption(Form("minor y tick num = %i",YAxis.NumMinorTicks));
-
-                AddPictureLine("]");
-
-                if( Canvas.DrawZeroLinesVector[ColumnX][ColumnY] ) AddPictureLine(Form("\\addplot[color=gray, forget plot, /tikz/densely dotted, ] coordinates{(%f,0)(%f,0)};",Canvas.XAxes[ColumnX].Min,Canvas.XAxes[ColumnX].Max));
-
-                for( Node * node:Canvas.Nodes[ColumnX][ColumnY] ) AddPictureLine(node->NodeText());
-
-                for( TString Node:Canvas.AdditionalNodes[ColumnX][ColumnY] ) AddPictureLine(Node.Data());
-
-                for( Graph gr:Canvas.Graphs[ColumnX][ColumnY] ){
-                    if( gr.DrawLines ){
-                        for( int iPoint=0; iPoint<gr.GetN()-1; iPoint++ ){
-                            AddPictureLine(Form("\\draw[line width = %fmm, %s](%f,%f)--(%f,%f);",gr.LineWidth,gr.LineColor.Data(),gr.GetPointX(iPoint),gr.GetPointY(iPoint),gr.GetPointX(iPoint+1),gr.GetPointY(iPoint+1)));
-                        }
-                    }
-                    if( gr.OnlyDrawLines ) continue;
-                    AddPictureLine(Form("\\addplot[shift={(%fmm,%fmm)}, scatter, only marks, forget plot, no markers, error bars/.cd, error mark = none, error bar style = {line width=%fmm,solid}, x dir = %s, x explicit, y dir = %s, y explicit]",gr.XShiftDistance,gr.YShiftDistance,gr.ErrorBarStyle.Width,gr.DrawXError?"both":"none",gr.DrawYError?"both":"none"));
-                    AddPictureLine("\t table[x index = 0, x error minus index = 1, x error plus index = 2, y index = 3, y error minus index = 4, y error plus index = 5]{");
-                    for( int iPoint=0; iPoint<gr.GetN(); iPoint++ ){
-                        AddPictureLine(Form("\t\t%f %f %f %f %f %f",gr.GetPointX(iPoint),gr.GetErrorXlow(iPoint),gr.GetErrorXhigh(iPoint), gr.GetPointY(iPoint),gr.GetErrorYlow(iPoint),gr.GetErrorYhigh(iPoint)));
-                    }
-                    AddPictureLine("\t };");
-
-                    for( TString LatexLine:gr.SystematicErrorBoxLatexLines(&XAxis) ) AddPictureLine(LatexLine);
-                    for( Marker grMark:gr.MarkerNodes() ) AddPictureLine(grMark.NodeText());
-
-                }
-
-                AddPictureLine("\\end{axis}");
-            } // ColumnX
-        } // ColumnY
-        File<<"\\end{tikzpicture}\n\n";
-    } // AddCanvas
-
-    void AddPictureLine(TString Line){
-        File<<"\t"<<Line.Data()<<"\n";
-    }
-    void AddAxisOption(TString Option){
-        File<<"\t\t"<<Option.Data()<<",\n";
-    }
-    TString CanvasName(int ColumnX, int ColumnY){
-        return Form("X%iY%i",ColumnX,ColumnY);
-    }
-}; // TexFile
+#include "Classes/Axis.h"
+#include "Classes/Node.h"
+#include "Classes/Marker.h"
+#include "Classes/Box.h"
+#include "Classes/TextBox.h"
+#include "Classes/ErrorBar.h"
+#include "Classes/Graph.h"
+#include "Classes/PgfCanvas.h"
+#include "Classes/TexFile.h"
 
 namespace SplittingFigureTools{
   Marker BesIILambdaMarkerStyle, BesIILamBarMarkerStyle, BesIILamBarInnerMarkerStyle;
@@ -534,6 +59,21 @@ namespace SplittingFigureTools{
     AliceSplittingMarkerStyle.Shape = "diamond";
     AliceSplittingMarkerStyle.FillColor = GrayColor;
   }
+
+vector<vector<double>> Splitting(vector<vector<double>> LambdaPoints, vector<vector<double>> LamBarPoints){
+  vector<vector<double>> Differences;
+  for( int iEnergy = 0; iEnergy<LamBarPoints.size(); iEnergy++ ){
+    if( LambdaPoints[iEnergy][0]==3 ) break;
+    vector<double> Diff;
+    Diff.push_back(LambdaPoints[iEnergy][0]);
+    Diff.push_back(LamBarPoints[iEnergy][1]-LambdaPoints[iEnergy][1]);
+    Diff.push_back(sqrt(pow(LamBarPoints[iEnergy][2],2)+pow(LambdaPoints[iEnergy][2],2)));
+    Diff.push_back(sqrt(pow(LamBarPoints[iEnergy][3],2)+pow(LambdaPoints[iEnergy][3],2)));
+    Diff.push_back(sqrt(pow(LamBarPoints[iEnergy][4],2)+pow(LambdaPoints[iEnergy][4],2)));
+    Differences.push_back(Diff);
+  }
+  return Differences;
+} // Splitting
 
   void SetStatAndSystGraphs(Graph &StatisticalErrorGraph, Graph &SystematicErrorGraph, vector<vector<double>> MeasuredPolarizationDataPoints){
     const int NumDataPoints = (const int)MeasuredPolarizationDataPoints.size();
@@ -656,49 +196,22 @@ namespace SplittingFigureTools{
   }
 }; // SplittingFigureTools
 
-struct Legend{
-  TString ColumnLabels[10], RowLabels[10];
-  TString Title;
-  Graph Graphs[10][10];
-  int NumColumns, NumRows;
-  double ColumnShifts[10], RowShifts[10];
-
-  Legend(){}
-  virtual ~Legend(){}
-
-  void SetColumnLabel(int iColumn, TString Label){
-    ColumnLabels[iColumn] = Label;
-  }
-  void SetRowLabel(int iRow, TString Label){
-    RowLabels[iRow] = Label;
-  }
-  void SetColumnShiftX(int iColumn, double shift){
-    ColumnShifts[iColumn] = shift;
-  }
-  void SetRowShiftX(int iRow, double shift){
-    RowShifts[iRow] = shift;
-  }
-  void AddEntry(int iColumn, int iRow, Graph &gr){
-    Graphs[iColumn][iRow] = gr;
-  }
-}; // Legend
-
-  Graph ConvertTh1ToGraph(const TH1 &Hist){
-      int NumBins = Hist.GetNbinsX();
-      double BinWidth = Hist.GetBinWidth(0);
-      double XErrorOverXRange = BinWidth/(Hist.GetBinLowEdge(NumBins+1)-Hist.GetBinLowEdge(1));
-      int PointCounter = 0;
-      Graph gr;
-      gr.SetName(Form("%s_gr",Hist.GetName()));
-      for( int Bin=1; Bin<=NumBins; Bin++ ){
-          double Val = Hist.GetBinContent(Bin), Err = Hist.GetBinError(Bin);
-          if( Val==0 && Err==0 ) continue;
-          gr.SetPoint(PointCounter,Hist.GetBinCenter(Bin),Val);
-          gr.SetPointError(PointCounter,Hist.GetBinWidth(Bin)/2.,Hist.GetBinWidth(Bin)/2.,Err,Err);
-          PointCounter++;
-      } // Bin
-      return gr;
-  }
+Graph ConvertTh1ToGraph(const TH1 &Hist){
+  int NumBins = Hist.GetNbinsX();
+  double BinWidth = Hist.GetBinWidth(0);
+  double XErrorOverXRange = BinWidth/(Hist.GetBinLowEdge(NumBins+1)-Hist.GetBinLowEdge(1));
+  int PointCounter = 0;
+  Graph gr;
+  gr.SetName(Form("%s_gr",Hist.GetName()));
+  for( int Bin=1; Bin<=NumBins; Bin++ ){
+    double Val = Hist.GetBinContent(Bin), Err = Hist.GetBinError(Bin);
+    if( Val==0 && Err==0 ) continue;
+    gr.SetPoint(PointCounter,Hist.GetBinCenter(Bin),Val);
+    gr.SetPointError(PointCounter,Hist.GetBinWidth(Bin)/2.,Hist.GetBinWidth(Bin)/2.,Err,Err);
+    PointCounter++;
+  } // Bin
+  return gr;
+}
 
 void Plotter(TString OutputFileCommitHash = "test"){
     TString LambdaCommitHash19GeVCentrality = "84380533efb06885108ea47a091187d38f1989fe";
