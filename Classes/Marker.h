@@ -23,13 +23,13 @@ public:
   }
   virtual ~Marker(){}
 
-  TString NodeText(){
+  TString LatexLine(){
     Options.push_back("inner sep=0pt");
     Options.push_back(Form("minimum size=%fmm",Size));
     Options.push_back(Form("line width=%fmm",OutlineWidthScale*Size));
     Options.push_back(Shape.Data());
     if( Shape=="star" ) Options.push_back(Form("star point ratio=%f",StarPointRatio));
-    return Node::NodeText();
+    return Node::LatexLine();
   }
 };
 #endif

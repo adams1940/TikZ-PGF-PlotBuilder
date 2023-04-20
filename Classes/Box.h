@@ -18,10 +18,10 @@ public:
   }
   virtual ~Box(){}
 
-  TString NodeText(){
+  TString LatexLine(){
     Options.push_back(Form("minimum width=%fmm",Width));
     Options.push_back(Form("minimum height=%fmm",Height));
-    return Node::NodeText();
+    return Node::LatexLine();
   }
 };
 #endif

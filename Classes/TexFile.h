@@ -123,7 +123,7 @@ public:
 
         if( Canvas.DrawZeroLinesVector[ColumnX][ColumnY] ) AddPictureLine(Form("\\addplot[color=gray, forget plot, /tikz/densely dotted, ] coordinates{(%f,0)(%f,0)};",Canvas.XAxes[ColumnX].Min,Canvas.XAxes[ColumnX].Max));
 
-        for( Node * node:Canvas.Nodes[ColumnX][ColumnY] ) AddPictureLine(node->NodeText());
+        for( Node * node:Canvas.Nodes[ColumnX][ColumnY] ) AddPictureLine(node->LatexLine());
 
         for( TString Node:Canvas.AdditionalNodes[ColumnX][ColumnY] ) AddPictureLine(Node.Data());
 
@@ -142,7 +142,7 @@ public:
           AddPictureLine("\t };");
 
           for( TString LatexLine:gr.SystematicErrorBoxLatexLines(&XAxis) ) AddPictureLine(LatexLine);
-          for( Marker grMark:gr.MarkerNodes() ) AddPictureLine(grMark.NodeText());
+          for( Marker grMark:gr.MarkerNodes() ) AddPictureLine(grMark.LatexLine());
         }
 
         AddPictureLine("\\end{axis}");

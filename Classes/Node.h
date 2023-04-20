@@ -32,7 +32,7 @@ public:
     ShiftY = y;
   }
 
-  virtual TString NodeText(){
+  virtual TString LatexLine(){
     if( OutlineColor!="" ) Options.push_back(Form("color=%s",OutlineColor.Data()));
     if( FillColor!="" ) Options.push_back(Form("fill=%s",FillColor.Data()));
     if( ShiftX!=0 ) Options.push_back(Form("xshift=%fmm",ShiftX));
