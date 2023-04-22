@@ -97,6 +97,11 @@ vector<vector<double>> Splitting(vector<vector<double>> LambdaPoints, vector<vec
     can = &c;
   }
 
+  void DrawDataOnPad(Graph &StatGraph, Graph &SystGraph, Pad &pad){
+    StatGraph.SystematicErrorGraph = SystGraph;
+    pad.AddGraph(StatGraph);
+  }
+
   void DrawData(Graph &StatGraph, Graph &SystGraph){
     StatGraph.SystematicErrorGraph = SystGraph;
     can->AddGraph(StatGraph);
@@ -392,6 +397,23 @@ void Plotter(TString OutputFileCommitHash = "test"){
     SplittingFigureTools::SetStatAndSystGraphs(AliceLambdaStat,AliceLambdaSyst,AlicLambdaPolarizationGraphPoints);
     Graph AliceLamBarStat, AliceLamBarSyst;
     SplittingFigureTools::SetStatAndSystGraphs(AliceLamBarStat,AliceLamBarSyst,AlicLamBarPolarizationGraphPoints);
+
+    PgfCanvas EnergyFinalCanvas(1,2);
+    Pad PolarizationVsEnergyPad;
+    PolarizationVsEnergyPad.SetLogX();
+    PolarizationVsEnergyPad.SetXYTitle(sNNTitle,PolarizationTitle);
+    PolarizationVsEnergyPad.SetXRange(1.5,9000);
+    PolarizationVsEnergyPad.SetYRange(-1,12);
+    EnergyFinalCanvas.cd(0,0);
+    EnergyFinalCanvas.AddPad(PolarizationVsEnergyPad);
+    Pad SplittingVsEnergyPad;
+    SplittingVsEnergyPad.SetLogX();
+    SplittingVsEnergyPad.SetXYTitle(sNNTitle,"P_{\\bar{\\Lambda}}-P_{\\Lambda}~(\\%)");
+    SplittingVsEnergyPad.SetXRange(1.5,9000);
+    SplittingVsEnergyPad.SetYRange(-1.6,2.4);
+    EnergyFinalCanvas.cd(0,1);
+    EnergyFinalCanvas.AddPad(SplittingVsEnergyPad);
+    MyTexFile.AddCanvas(EnergyFinalCanvas);
 
     PgfCanvas EnergyCanvas(1,2);
       PgfCanvas EnergyCanvasTopPanelZoom(1,1);

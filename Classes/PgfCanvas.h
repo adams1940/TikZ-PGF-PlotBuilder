@@ -5,12 +5,55 @@
 #include "Axis.h"
 #include "Node.h"
 
+class Pad{
+private:
+
+public:
+  Axis XAxis, YAxis;
+  vector<Graph> Graphs;
+  vector<Node *> Nodes;
+  bool DrawZeroLine;
+  double XLabelOffsetY, YLabelOffsetX;
+  double Width, Height; // mm
+
+  Pad(){
+    XLabelOffsetY = -0.07;
+    YLabelOffsetX = -0.161;
+    DrawZeroLine = false;
+    Width = 100;
+    Height = 0.9*Width;
+  }
+  virtual ~Pad(){}
+
+  void AddGraph(Graph &gr){ Graphs.push_back(gr); }
+  void SetLogX(){ XAxis.IsLog = true; }
+  void SetLogY(){ YAxis.IsLog = true; }
+  void SetXTitle(TString Title){ XAxis.Title = Title; }
+  void SetYTitle(TString Title){ YAxis.Title = Title; }
+  void SetXYTitle(TString XTitle, TString YTitle){ 
+    SetXTitle(XTitle);
+    SetYTitle(YTitle);
+  }
+  void SetXRange(double Min, double Max){
+    XAxis.Min = Min;
+    XAxis.Max = Max;
+  }
+
+  void SetYRange(double Min, double Max){
+    YAxis.Min = Min;
+    YAxis.Max = Max;
+  }
+
+  void AddNode(Node * node){ Nodes.push_back(node); }
+
+};
+
 class PgfCanvas{
 private:
 
 public:
-  int ActivePadX, ActivePadY;
   int NumDivisionsX, NumDivisionsY;
+  int ActiveColX, ActiveRowY;
   double Width, Height; // mm
   vector<Axis> XAxes, YAxes;
   vector<Graph> Graphs[10][10]; // Ideally would be [NumDivisionsX][NumDivisionsY]
@@ -18,6 +61,7 @@ public:
   vector<Node*> Nodes[10][10]; // Ideally would be [NumDivisionsX][NumDivisionsY]
   vector<vector<bool>> DrawZeroLinesVector;
   double XLabelOffsetY, YLabelOffsetX;
+  vector<Pad> Pads[10][10]; // Ideally would be [NumDivisionsX][NumDivisionsY]
 
   PgfCanvas(int NX = 1, int NY = 1):NumDivisionsX(NX),NumDivisionsY(NY){
     Width = 100/(double)NX;
@@ -31,28 +75,30 @@ public:
   }
   virtual ~PgfCanvas(){}
 
-  void cd(int X = 0, int Y = 0){
+  void cd(int X = 0, int Y = 0, int I = 0){
     if( X>=NumDivisionsX || Y>=NumDivisionsY ){
       cout<<"Error: This pad doesn't exist!"<<endl;
       gApplication->Terminate();
     }
-    ActivePadX = X;
-    ActivePadY = Y;
+    ActiveColX = X;
+    ActiveRowY = Y;
   }
 
-  Axis& ActiveXAxis(){ return XAxes[ActivePadX]; }
-  Axis& ActiveYAxis(){ return YAxes[ActivePadY]; }
+  void AddPad(Pad &pad){ Pads[ActiveColX][ActiveRowY].push_back(pad); }
+
+  Axis& ActiveXAxis(){ return XAxes[ActiveColX]; }
+  Axis& ActiveYAxis(){ return YAxes[ActiveRowY]; }
 
   void AddGraph(Graph gr){
-    Graphs[ActivePadX][ActivePadY].push_back(gr);
+    Graphs[ActiveColX][ActiveRowY].push_back(gr);
   }
 
   void SetXTitle(TString Title){
-    XAxes[ActivePadX].Title = Title;
+    XAxes[ActiveColX].Title = Title;
   }
 
   void SetYTitle(TString Title){
-    YAxes[ActivePadY].Title = Title;
+    YAxes[ActiveRowY].Title = Title;
   }
 
   void SetXYTitles(TString XTitle, TString YTitle){
@@ -61,13 +107,13 @@ public:
   }
 
   void SetXRange(double Min, double Max){
-    XAxes[ActivePadX].Min = Min;
-    XAxes[ActivePadX].Max = Max;
+    XAxes[ActiveColX].Min = Min;
+    XAxes[ActiveColX].Max = Max;
   }
 
   void SetYRange(double Min, double Max){
-    YAxes[ActivePadY].Min = Min;
-    YAxes[ActivePadY].Max = Max;
+    YAxes[ActiveRowY].Min = Min;
+    YAxes[ActiveRowY].Max = Max;
   }
 
   void SetXRanges(double Min, double Max){
@@ -97,15 +143,130 @@ public:
   }
 
   void DrawZeroLine(){
-    DrawZeroLinesVector[ActivePadX][ActivePadY] = true;
+    DrawZeroLinesVector[ActiveColX][ActiveRowY] = true;
   }
 
   void AddNode(TString Text){
-    AdditionalNodes[ActivePadX][ActivePadY].push_back(Text);
+    AdditionalNodes[ActiveColX][ActiveRowY].push_back(Text);
   }
 
   void AddNode(Node * node){
-    Nodes[ActivePadX][ActivePadY].push_back(node);
+    Nodes[ActiveColX][ActiveRowY].push_back(node);
+  }
+
+  TString CanvasName(int ColX, int RowY, int iPad){ return Form("ColX%i_RowY%i_Pad%i",ColX,RowY,iPad); }
+
+  TString AxisOption(TString Text ){
+    return Form("\t\t%s,",Text.Data());
+  }
+
+  vector<TString> LatexLines(){
+    vector<TString> Lines;
+    for( int ColX = 0; ColX<NumDivisionsX; ColX++ ){
+      for( int RowY = 0; RowY<NumDivisionsY; RowY++ ){
+        // for( Pad pad:Pads[ColX][RowY] ){
+        for( int iPad = 0; iPad<Pads[ColX][RowY].size(); iPad++ ){
+          Pad pad = Pads[ColX][RowY][iPad];
+
+          Lines.push_back("\t\\begin{axis}[");
+
+          Lines.push_back(AxisOption(Form("\t\twidth=%fmm",pad.Width)));
+          Lines.push_back(AxisOption(Form("\t\theight=%fmm",pad.Height)));
+          Lines.push_back(AxisOption(Form("\t\txmin=%f",pad.XAxis.Min)));
+          Lines.push_back(AxisOption(Form("\t\txmax=%f",pad.XAxis.Max)));
+          Lines.push_back(AxisOption(Form("\t\tymin=%f",pad.YAxis.Min)));
+          Lines.push_back(AxisOption(Form("\t\tymax=%f",pad.YAxis.Max)));
+          Lines.push_back(AxisOption(Form("\t\tx label style={at={(1,%f)},anchor=north east}",pad.XLabelOffsetY)));
+          Lines.push_back(AxisOption(Form("\t\ty label style={at={(%f,1)},anchor=north east}",pad.YLabelOffsetX)));
+          if( pad.XAxis.IsLog ) Lines.push_back(AxisOption("\t\txmode=log"));
+          if( pad.YAxis.IsLog ) Lines.push_back(AxisOption("\t\tymode=log"));
+
+          Lines.push_back(AxisOption(Form("\t\tname=%s",CanvasName(ColX,RowY,iPad).Data())));
+          if( !(ColX==0 && RowY==0) && iPad==0 ){
+            if( ColX==0 ){
+              Lines.push_back(AxisOption(Form("\t\tat=(%s.south)",CanvasName(ColX,RowY-1,0).Data())));
+              Lines.push_back(AxisOption("\t\tanchor=north"));
+            }
+            else{
+              Lines.push_back(AxisOption(Form("\t\tat=(%s.east)",CanvasName(ColX-1,RowY,0).Data())));
+              Lines.push_back(AxisOption("\t\tanchor=west"));
+            }
+          }
+
+          if( RowY<NumDivisionsY-1 ) Lines.push_back(AxisOption("\t\txticklabels={}"));
+          else Lines.push_back(AxisOption(Form("\t\txlabel={%s\\(%s\\)}",pad.XAxis.TitleSize.Data(),pad.XAxis.Title.Data())));
+          if( ColX>0 ) Lines.push_back(AxisOption("\t\tyticklabels={}"));
+          else Lines.push_back(AxisOption(Form("\t\tylabel={%s\\(%s\\)}",pad.YAxis.TitleSize.Data(),pad.YAxis.Title.Data())));
+
+          if( pad.XAxis.CustomMajorTicks.size()>0 ){
+            TString CustomMajorTicksString = "{";
+            { // Put this method in a custom vector class?
+              for( int i=0; i<pad.XAxis.CustomMajorTicks.size()-1; i++ ) CustomMajorTicksString.Append(Form("%f, ",pad.XAxis.CustomMajorTicks[i]));
+              CustomMajorTicksString.Append(Form("%f}",pad.XAxis.CustomMajorTicks[pad.XAxis.CustomMajorTicks.size()-1]));
+            }
+            Lines.push_back(AxisOption(Form("\t\txtick=%s",CustomMajorTicksString.Data())));
+          }
+          if( pad.YAxis.CustomMajorTicks.size()>0 ){
+            TString CustomMajorTicksString = "{";
+            { // Put this method in a custom vector class?
+              for( int i=0; i<pad.YAxis.CustomMajorTicks.size()-1; i++ ) CustomMajorTicksString.Append(Form("%f, ",pad.YAxis.CustomMajorTicks[i]));
+              CustomMajorTicksString.Append(Form("%f}",pad.YAxis.CustomMajorTicks[pad.YAxis.CustomMajorTicks.size()-1]));
+            }
+            Lines.push_back(AxisOption(Form("\t\tytick=%s",CustomMajorTicksString.Data())));
+          }
+          if( pad.XAxis.CustomMinorTicks.size()>0 ){
+            TString CustomMinorTicksString = "{";
+            { // Put this method in a custom vector class?
+              for( int i=0; i<pad.XAxis.CustomMinorTicks.size()-1; i++ ) CustomMinorTicksString.Append(Form("%f, ",pad.XAxis.CustomMinorTicks[i]));
+              CustomMinorTicksString.Append(Form("%f}",pad.XAxis.CustomMinorTicks[pad.XAxis.CustomMinorTicks.size()-1]));
+            }
+            Lines.push_back(AxisOption(Form("\t\tminor xtick=%s",CustomMinorTicksString.Data())));
+          }
+          Lines.push_back(AxisOption(Form("\t\tminor x tick num = %i",pad.XAxis.NumMinorTicks)));
+          if( pad.YAxis.CustomMinorTicks.size()>0 ){
+            TString CustomMinorTicksString = "{";
+            { // Put this method in a custom vector class?
+              for( int i=0; i<pad.YAxis.CustomMinorTicks.size()-1; i++ ) CustomMinorTicksString.Append(Form("%f, ",pad.YAxis.CustomMinorTicks[i]));
+              CustomMinorTicksString.Append(Form("%f}",pad.YAxis.CustomMinorTicks[pad.YAxis.CustomMinorTicks.size()-1]));
+            }
+            Lines.push_back(AxisOption(Form("\t\tminor ytick=%s",CustomMinorTicksString.Data())));
+          }
+          Lines.push_back(AxisOption(Form("\t\tminor y tick num = %i",pad.YAxis.NumMinorTicks)));
+
+          Lines.push_back("\t]");
+
+          Lines.push_back("\t\\end{axis}");
+        } // iPad
+      } // RowY
+    } // ColY
+
+
+
+  //       if( Canvas.DrawZeroLinesVector[ColumnX][ColumnY] ) AddPictureLine(Form("\\addplot[color=gray, forget plot, /tikz/densely dotted, ] coordinates{(%f,0)(%f,0)};",Canvas.XAxes[ColumnX].Min,Canvas.XAxes[ColumnX].Max));
+
+  //       for( Node * node:Canvas.Nodes[ColumnX][ColumnY] ) AddPictureLine(node->LatexLine());
+
+  //       for( TString Node:Canvas.AdditionalNodes[ColumnX][ColumnY] ) AddPictureLine(Node.Data());
+
+  //       for( Graph gr:Canvas.Graphs[ColumnX][ColumnY] ){
+  //         if( gr.DrawLines ){
+  //           for( int iPoint=0; iPoint<gr.GetN()-1; iPoint++ ){
+  //             AddPictureLine(Form("\\draw[line width = %fmm, %s](%f,%f)--(%f,%f);",gr.LineWidth,gr.LineColor.Data(),gr.GetPointX(iPoint),gr.GetPointY(iPoint),gr.GetPointX(iPoint+1),gr.GetPointY(iPoint+1)));
+  //           }
+  //         }
+  //         if( gr.OnlyDrawLines ) continue;
+  //         AddPictureLine(Form("\\addplot[shift={(%fmm,%fmm)}, scatter, only marks, forget plot, no markers, error bars/.cd, error mark = none, error bar style = {line width=%fmm,solid}, x dir = %s, x explicit, y dir = %s, y explicit]",gr.XShiftDistance,gr.YShiftDistance,gr.ErrorBarStyle.Width,gr.DrawXError?"both":"none",gr.DrawYError?"both":"none"));
+  //         AddPictureLine("\t table[x index = 0, x error minus index = 1, x error plus index = 2, y index = 3, y error minus index = 4, y error plus index = 5]{");
+  //         for( int iPoint=0; iPoint<gr.GetN(); iPoint++ ){
+  //           AddPictureLine(Form("\t\t%f %f %f %f %f %f",gr.GetPointX(iPoint),gr.GetErrorXlow(iPoint),gr.GetErrorXhigh(iPoint), gr.GetPointY(iPoint),gr.GetErrorYlow(iPoint),gr.GetErrorYhigh(iPoint)));
+  //         }
+  //         AddPictureLine("\t };");
+
+  //         for( TString LatexLine:gr.SystematicErrorBoxLatexLines(&XAxis) ) AddPictureLine(LatexLine);
+  //         for( Marker grMark:gr.MarkerNodes() ) AddPictureLine(grMark.LatexLine());
+  //       }
+
+    return Lines;
   }
 };
 #endif

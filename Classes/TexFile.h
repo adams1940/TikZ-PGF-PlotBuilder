@@ -52,6 +52,8 @@ public:
     for( int ColumnY=0; ColumnY<Canvas.NumDivisionsY; ColumnY++ ){
       Axis YAxis = Canvas.YAxes[ColumnY];
       for( int ColumnX=0; ColumnX<Canvas.NumDivisionsX; ColumnX++ ){
+        for( TString Line:Canvas.LatexLines() ) AddLine(Line);
+        if( Canvas.LatexLines().size()>0 ) continue;
         Axis XAxis = Canvas.XAxes[ColumnX];
         AddPictureLine("\\begin{axis}[");
 
@@ -151,6 +153,9 @@ public:
     File<<"\\end{tikzpicture}\n\n";
   } // AddCanvas
 
+  void AddLine(TString Line){
+    File<<Line.Data()<<"\n";
+  }
   void AddPictureLine(TString Line){
     File<<"\t"<<Line.Data()<<"\n";
   }
