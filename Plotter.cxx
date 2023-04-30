@@ -9,6 +9,7 @@ TString sNNTitle = "\\sqrt{s_\\mathrm{NN}}";
 #include "Classes/Graph.h"
 #include "Classes/PgfCanvas.h"
 #include "Classes/TexFile.h"
+#include "Classes/Pad.h"
 
 namespace SplittingFigureTools{
   Marker BesIILambdaMarkerStyle, BesIILamBarMarkerStyle, BesIILamBarInnerMarkerStyle;
@@ -16,7 +17,7 @@ namespace SplittingFigureTools{
   Marker AliceLambdaMarkerStyle, AliceLamBarMarkerStyle;
   Marker BesISplittingMarkerStyle, BesIISplittingMarkerStyle, AliceSplittingMarkerStyle;
   double XShift;
-  PgfCanvas * can;
+  Pad * pad;
   double BesISizeFactor;
   TString LambdaFillColor, LamBarFillColor, LamBarInnerFillColor, GrayColor;
 
@@ -93,18 +94,13 @@ vector<vector<double>> Splitting(vector<vector<double>> LambdaPoints, vector<vec
     } // iDataPoint
   }
 
-  void SetCanvas(PgfCanvas &c){
-    can = &c;
-  }
-
-  void DrawDataOnPad(Graph &StatGraph, Graph &SystGraph, Pad &pad){
-    StatGraph.SystematicErrorGraph = SystGraph;
-    pad.AddGraph(StatGraph);
+  void SetPad(Pad &p){
+    pad = &p;
   }
 
   void DrawData(Graph &StatGraph, Graph &SystGraph){
     StatGraph.SystematicErrorGraph = SystGraph;
-    can->AddGraph(StatGraph);
+    pad->AddGraph(StatGraph);
   }
 
   void DrawBesISplitting(vector<vector<double>> LambdaPoints, vector<vector<double>> LamBarPoints){
@@ -166,38 +162,38 @@ vector<vector<double>> Splitting(vector<vector<double>> LambdaPoints, vector<vec
   void DrawInfoText(TString Energy, TString PtRapidityCentrality, double x, double y){
     TextBox * text = new TextBox(x,y);
     text->Text = Form("STAR Au+Au, $%s=%s$~GeV\\\\%s\\\\$\\alpha_\\Lambda=0.732$",sNNTitle.Data(),Energy.Data(),PtRapidityCentrality.Data());
-    can->AddNode(text);
+    pad->AddNode(text);
   }
 
   void DrawLambdaPointLegend(double x, double y){
     double XShift = 2.5, TitleYShift = 0, MarkerYShift = -2.5;
     Box * Background = new Box(x,y); 
-    can->AddNode(Background);
+    pad->AddNode(Background);
     TextBox * LambdaTitle = new TextBox(x,y);
     LambdaTitle->Text = "$\\Lambda$";
     LambdaTitle->Shift(-XShift,TitleYShift);
     LambdaTitle->Anchor = "south";
-    can->AddNode(LambdaTitle);
+    pad->AddNode(LambdaTitle);
     TextBox * LamBarTitle = new TextBox(x,y);
     LamBarTitle->Text = "$\\bar{\\Lambda}$";
     LamBarTitle->Shift(XShift,TitleYShift);
     LamBarTitle->Anchor = "south";
-    can->AddNode(LamBarTitle);
+    pad->AddNode(LamBarTitle);
     Marker * LambdaLegendMarker = new Marker();
     *LambdaLegendMarker = BesIILambdaMarkerStyle;
     LambdaLegendMarker->SetAnchorPosition(x,y);
     LambdaLegendMarker->Shift(-XShift,MarkerYShift);
-    can->AddNode(LambdaLegendMarker);
+    pad->AddNode(LambdaLegendMarker);
     Marker * LamBarLegendMarker = new Marker();
     *LamBarLegendMarker = BesIILamBarMarkerStyle;
     LamBarLegendMarker->SetAnchorPosition(x,y);
     LamBarLegendMarker->Shift(XShift,MarkerYShift);
-    can->AddNode(LamBarLegendMarker);
+    pad->AddNode(LamBarLegendMarker);
     Marker * LamBarInnerLegendMarker = new Marker();
     *LamBarInnerLegendMarker = BesIILamBarInnerMarkerStyle;
     LamBarInnerLegendMarker->SetAnchorPosition(x,y);
     LamBarInnerLegendMarker->Shift(XShift,MarkerYShift);
-    can->AddNode(LamBarInnerLegendMarker);
+    pad->AddNode(LamBarInnerLegendMarker);
   }
 }; // SplittingFigureTools
 
@@ -331,58 +327,72 @@ void Plotter(TString OutputFileCommitHash = "test"){
   };
 
     TexFile MyTexFile(OutputFileCommitHash);
+    SplittingFigureTools::SetMarkerStyles();
 
     PgfCanvas CentralityCanvas(1,2);
-    CentralityCanvas.SetXYTitles("\\mathrm{Centrality}~(\\%)",PolarizationTitle);
-    CentralityCanvas.SetXRanges(-5,85);
-    CentralityCanvas.SetYRanges(-0.65,3.65);
-    CentralityCanvas.DrawZeroLines();
-    CentralityCanvas.cd(0,0);
-    // SplittingFigure CentralityFigure;
-    SplittingFigureTools::SetCanvas(CentralityCanvas);
-    SplittingFigureTools::SetMarkerStyles();
+    Pad CentralityPad19, CentralityPad27;
+    CentralityPad19.SetXYTitle("\\mathrm{Centrality}~(\\%)",PolarizationTitle);
+    CentralityPad19.SetXRange(-5,85);
+    CentralityPad19.SetYRange(-0.65,3.65);
+    CentralityPad19.DrawZeroLine = true;
+    CentralityPad27.SetPlottingStyle(CentralityPad19);
+    SplittingFigureTools::SetPad(CentralityPad19);
     SplittingFigureTools::DrawBesIILambda(LambdaStatGraph19GeVCentrality,LambdaSystGraph19GeVCentrality);
     SplittingFigureTools::DrawBesIILamBar(LamBarStatGraph19GeVCentrality,LamBarSystGraph19GeVCentrality);
     SplittingFigureTools::DrawInfoText("19.6","$p_{\\mathrm{T}}>0.5$~GeV/$c$, $|y|<1$",22,2.8);
-    CentralityCanvas.cd(0,1);
+    SplittingFigureTools::DrawLambdaPointLegend(15,1.5);
+    SplittingFigureTools::SetPad(CentralityPad27);
     SplittingFigureTools::DrawBesIILambda(LambdaStatGraph27GeVCentrality,LambdaSystGraph27GeVCentrality);
     SplittingFigureTools::DrawBesIILamBar(LamBarStatGraph27GeVCentrality,LamBarSystGraph27GeVCentrality);
-    SplittingFigureTools::DrawLambdaPointLegend(15,1.5);
     SplittingFigureTools::DrawInfoText("27","$p_{\\mathrm{T}}>0.5$~GeV/$c$, $|y|<1$",22,2.8);
+    CentralityCanvas.cd(0,0);
+    CentralityCanvas.AddPad(CentralityPad19);
+    CentralityCanvas.cd(0,1);
+    CentralityCanvas.AddPad(CentralityPad27);
     MyTexFile.AddCanvas(CentralityCanvas);
 
     PgfCanvas PtCanvas(1,2);
-    PtCanvas.SetXYTitles("p_{\\mathrm{T}}~(\\mathrm{GeV}/c)",PolarizationTitle);
-    PtCanvas.SetXRanges(0.3,3.7);
-    PtCanvas.SetYRanges(-0.22,1.82);
-    PtCanvas.DrawZeroLines();
-    PtCanvas.cd(0,0);
-    SplittingFigureTools::SetCanvas(PtCanvas);
+    Pad PtPad19, PtPad27;
+    PtPad19.SetXYTitle("p_{\\mathrm{T}}~(\\mathrm{GeV}/c)",PolarizationTitle);
+    PtPad19.SetXRange(0.3,3.7);
+    PtPad19.SetYRange(-0.22,1.82);
+    PtPad19.DrawZeroLine = true;
+    PtPad27.SetPlottingStyle(PtPad19);
+    SplittingFigureTools::SetPad(PtPad19);
     SplittingFigureTools::DrawBesIILambda(LambdaStatGraph19GeVPt,LambdaSystGraph19GeVPt);
     SplittingFigureTools::DrawBesIILamBar(LamBarStatGraph19GeVPt,LamBarSystGraph19GeVPt);
     SplittingFigureTools::DrawInfoText("19.6","20-50\\% Centrality, $|y|<1$",1.4,0.05);
     SplittingFigureTools::DrawLambdaPointLegend(3.35,1.5);
-    PtCanvas.cd(0,1);
+    SplittingFigureTools::SetPad(PtPad27);
     SplittingFigureTools::DrawBesIILambda(LambdaStatGraph27GeVPt,LambdaSystGraph27GeVPt);
     SplittingFigureTools::DrawBesIILamBar(LamBarStatGraph27GeVPt,LamBarSystGraph27GeVPt);
     SplittingFigureTools::DrawInfoText("27","20-50\\% Centrality, $|y|<1$",1.4,0.05);
+    PtCanvas.cd(0,0);
+    PtCanvas.AddPad(PtPad19);
+    PtCanvas.cd(0,1);
+    PtCanvas.AddPad(PtPad27);
     MyTexFile.AddCanvas(PtCanvas);
 
     PgfCanvas RapidityCanvas(1,2);
-    RapidityCanvas.SetXYTitles("y",PolarizationTitle);
-    RapidityCanvas.SetXRanges(-1.7,1.7);
-    RapidityCanvas.SetYRanges(-0.22,1.82);
-    RapidityCanvas.DrawZeroLines();
-    RapidityCanvas.cd(0,0);
-    SplittingFigureTools::SetCanvas(RapidityCanvas);
+    Pad RapidityPad19, RapidityPad27;
+    RapidityPad19.SetXYTitle("y",PolarizationTitle);
+    RapidityPad19.SetXRange(-1.7,1.7);
+    RapidityPad19.SetYRange(-0.22,1.82);
+    RapidityPad19.DrawZeroLine = true;
+    RapidityPad27.SetPlottingStyle(RapidityPad19);
+    SplittingFigureTools::SetPad(RapidityPad19);
     SplittingFigureTools::DrawBesIILambda(LambdaStatGraph19GeVRapidity,LambdaSystGraph19GeVRapidity);
     SplittingFigureTools::DrawBesIILamBar(LamBarStatGraph19GeVRapidity,LamBarSystGraph19GeVRapidity);
     SplittingFigureTools::DrawInfoText("19.6","20-50\\% Centrality, $p_{\\mathrm{T}}>0.5$~GeV/$c$",0,.05);
     SplittingFigureTools::DrawLambdaPointLegend(1.5,1.65);
-    RapidityCanvas.cd(0,1);
+    SplittingFigureTools::SetPad(RapidityPad27);
     SplittingFigureTools::DrawBesIILambda(LambdaStatGraph27GeVRapidity,LambdaSystGraph27GeVRapidity);
     SplittingFigureTools::DrawBesIILamBar(LamBarStatGraph27GeVRapidity,LamBarSystGraph27GeVRapidity);
     SplittingFigureTools::DrawInfoText("27","20-50\\% Centrality, $p_{\\mathrm{T}}>0.5$~GeV/$c$",0,0.05);
+    RapidityCanvas.cd(0,0);
+    RapidityCanvas.AddPad(RapidityPad19);
+    RapidityCanvas.cd(0,1);
+    RapidityCanvas.AddPad(RapidityPad27);
     MyTexFile.AddCanvas(RapidityCanvas);
 
     Graph StarBesILambdaStat, StarBesILambdaSyst;
@@ -404,6 +414,13 @@ void Plotter(TString OutputFileCommitHash = "test"){
     PolarizationVsEnergyPad.SetXYTitle(sNNTitle,PolarizationTitle);
     PolarizationVsEnergyPad.SetXRange(1.5,9000);
     PolarizationVsEnergyPad.SetYRange(-1,12);
+    SplittingFigureTools::SetPad(PolarizationVsEnergyPad);
+    SplittingFigureTools::DrawBesILambda(StarBesILambdaStat,StarBesILambdaSyst);
+    SplittingFigureTools::DrawBesILamBar(StarBesILamBarStat,StarBesILamBarSyst);
+    SplittingFigureTools::DrawBesIILambda(StarBesIILambdaStat,StarBesIILambdaSyst);
+    SplittingFigureTools::DrawBesIILamBar(StarBesIILamBarStat,StarBesIILamBarSyst);
+    SplittingFigureTools::DrawAliceLambda(AliceLambdaStat,AliceLambdaSyst);
+    SplittingFigureTools::DrawAliceLamBar(AliceLamBarStat,AliceLamBarSyst);
     EnergyFinalCanvas.cd(0,0);
     EnergyFinalCanvas.AddPad(PolarizationVsEnergyPad);
     Pad SplittingVsEnergyPad;
@@ -411,43 +428,13 @@ void Plotter(TString OutputFileCommitHash = "test"){
     SplittingVsEnergyPad.SetXYTitle(sNNTitle,"P_{\\bar{\\Lambda}}-P_{\\Lambda}~(\\%)");
     SplittingVsEnergyPad.SetXRange(1.5,9000);
     SplittingVsEnergyPad.SetYRange(-1.6,2.4);
-    EnergyFinalCanvas.cd(0,1);
-    EnergyFinalCanvas.AddPad(SplittingVsEnergyPad);
-    MyTexFile.AddCanvas(EnergyFinalCanvas);
-
-    PgfCanvas EnergyCanvas(1,2);
-      PgfCanvas EnergyCanvasTopPanelZoom(1,1);
-      EnergyCanvasTopPanelZoom.SetXRange(15,35);
-      EnergyCanvasTopPanelZoom.SetYRange(0,3);
-      SplittingFigureTools::SetCanvas(EnergyCanvasTopPanelZoom);
-      SplittingFigureTools::DrawBesILambda(StarBesILambdaStat,StarBesILambdaSyst);
-      SplittingFigureTools::DrawBesILamBar(StarBesILamBarStat,StarBesILamBarSyst);
-      SplittingFigureTools::DrawBesIILambda(StarBesIILambdaStat,StarBesIILambdaSyst);
-      SplittingFigureTools::DrawBesIILamBar(StarBesIILamBarStat,StarBesIILamBarSyst);
-      // EnergyCanvas.AddZoomInset(EnergyCanvasTopPanelZoom);
-      TexFile ZoomInsetFile("temp_ZoomInset_Top");
-      ZoomInsetFile.AddCanvas(EnergyCanvasTopPanelZoom);
-    EnergyCanvas.DrawZeroLines();
-    EnergyCanvas.SetLogX();
-    EnergyCanvas.SetXRanges(1.5,9000);
-    EnergyCanvas.cd(0,0);
-    EnergyCanvas.SetYTitle(PolarizationTitle);
-    EnergyCanvas.SetYRange(-1,12);
-    SplittingFigureTools::SetCanvas(EnergyCanvas);
-    SplittingFigureTools::DrawBesILambda(StarBesILambdaStat,StarBesILambdaSyst);
-    SplittingFigureTools::DrawBesILamBar(StarBesILamBarStat,StarBesILamBarSyst);
-    SplittingFigureTools::DrawBesIILambda(StarBesIILambdaStat,StarBesIILambdaSyst);
-    SplittingFigureTools::DrawBesIILamBar(StarBesIILamBarStat,StarBesIILamBarSyst);
-    SplittingFigureTools::DrawAliceLambda(AliceLambdaStat,AliceLambdaSyst);
-    SplittingFigureTools::DrawAliceLamBar(AliceLamBarStat,AliceLamBarSyst);
-    EnergyCanvas.cd(0,1);
-    EnergyCanvas.SetYRange(-1.6,2.4);
-    EnergyCanvas.SetXTitle(sNNTitle.Data());
-    EnergyCanvas.SetYTitle("P_{\\bar{\\Lambda}}-P_{\\Lambda}~(\\%)");
+    SplittingFigureTools::SetPad(SplittingVsEnergyPad);
     SplittingFigureTools::DrawBesISplitting(StarLambdaPolarizationGraphPoints,StarLamBarPolarizationGraphPoints);
     SplittingFigureTools::DrawBesIISplitting(NineteenGeVLambdaPolarizationGraphPoints,NineteenGeVLamBarPolarizationGraphPoints);
     SplittingFigureTools::DrawAliceSplitting(AlicLambdaPolarizationGraphPoints,AlicLamBarPolarizationGraphPoints);
-    MyTexFile.AddCanvas(EnergyCanvas);
+    EnergyFinalCanvas.cd(0,1);
+    EnergyFinalCanvas.AddPad(SplittingVsEnergyPad);
+    MyTexFile.AddCanvas(EnergyFinalCanvas);
 
     double Res19GeV[] = {0.2048, 0.371, 0.4768, 0.5418, 0.5773, 0.5924, 0.5932, 0.5826, 0.563, 0.5343, 0.495, 0.4474, 0.399, 0.3499, 0.3015, 0.2599};
     double Res27GeV[] = {0.1836, 0.3332, 0.4194, 0.4685, 0.4935, 0.5003, 0.4987, 0.4851, 0.4685, 0.4436, 0.4134, 0.3801, 0.3431, 0.3038, 0.2645, 0.2161};
@@ -458,9 +445,10 @@ void Plotter(TString OutputFileCommitHash = "test"){
     for( int i=0; i<Resolution19GeV.GetN(); i++ ) Resolution19GeV.SetPointY(i,Res19GeV[i]);
     for( int i=0; i<Resolution27GeV.GetN(); i++ ) Resolution27GeV.SetPointY(i,Res27GeV[i]);
     PgfCanvas ResolutionCanvas(1,1);
-    ResolutionCanvas.SetXYTitles("\\mathrm{Centrality}~(\\%)","R_{\\mathrm{EP}}^{(1)}");
-    ResolutionCanvas.SetXRanges(-5,85);
-    ResolutionCanvas.SetYRanges(0,0.65);
+    Pad ResolutionPad;
+    ResolutionPad.SetXYTitle("\\mathrm{Centrality}~(\\%)","R_{\\mathrm{EP}}^{(1)}");
+    ResolutionPad.SetXRange(-5,85);
+    ResolutionPad.SetYRange(0,0.65);
     Marker Resolution19GeVMarkerStyle, Resolution27GeVMarkerStyle;
     Resolution19GeVMarkerStyle.Shape = "circle";
     Resolution19GeVMarkerStyle.Size = 2;
@@ -470,19 +458,26 @@ void Plotter(TString OutputFileCommitHash = "test"){
     Resolution27GeVMarkerStyle.FillColor = "red";
     Resolution19GeV.AddMarkerStyle(Resolution19GeVMarkerStyle);
     Resolution27GeV.AddMarkerStyle(Resolution27GeVMarkerStyle);
-    ResolutionCanvas.AddGraph(Resolution19GeV);
-    ResolutionCanvas.AddGraph(Resolution27GeV);
+    ResolutionPad.AddGraph(Resolution19GeV);
+    ResolutionPad.AddGraph(Resolution27GeV);
     double ResolutionLegendX = 25, ResolutionLegendY = 0.25;
     TString TitleYShift = "5mm";
     TString LegendMarkerXShift = "-8mm";
     TString LegendLabelXShift = "-5mm";
     TString LegendFirstRowYShift = "0mm";
     TString LegendSecndRowYShift = "-5mm";
-    ResolutionCanvas.AddNode(Form("\\node[draw, shape=rectangle, minimum width=25mm, minimum height=15mm, anchor=center,fill={rgb:black,0;white,3}] at (axis cs: %f,%f) {};",ResolutionLegendX,ResolutionLegendY));
-    ResolutionCanvas.AddNode(Form("\\node[anchor=center,align = center, yshift=%s] at (axis cs: %f,%f){$%s$};",TitleYShift.Data(),ResolutionLegendX,ResolutionLegendY,sNNTitle.Data()));
-	  ResolutionCanvas.AddNode(Form("\\node[color=black, fill=red, line width=0.100000mm, circle, minimum size=2.000000mm, inner sep=0pt, xshift = %s, yshift = %s, draw] at (axis cs: %f,%f){};",LegendMarkerXShift.Data(),LegendFirstRowYShift.Data(),ResolutionLegendX,ResolutionLegendY));
-	  ResolutionCanvas.AddNode(Form("\\node[color=black, fill=blue, line width=0.100000mm, circle, minimum size=2.000000mm, inner sep=0pt, xshift = %s, yshift = %s, draw] at (axis cs: %f,%f){};",LegendMarkerXShift.Data(),LegendSecndRowYShift.Data(),ResolutionLegendX,ResolutionLegendY));
-    ResolutionCanvas.AddNode(Form("\\node[anchor=west,align = center, xshift=%s, yshift=%s] at (axis cs: %f,%f){19.6~GeV};",LegendLabelXShift.Data(),LegendFirstRowYShift.Data(),ResolutionLegendX,ResolutionLegendY));
-    ResolutionCanvas.AddNode(Form("\\node[anchor=west,align = center, xshift=%s, yshift=%s] at (axis cs: %f,%f){27~GeV};",LegendLabelXShift.Data(),LegendSecndRowYShift.Data(),ResolutionLegendX,ResolutionLegendY));
+    Box ResolutionLegendBox(ResolutionLegendX,ResolutionLegendY);
+    ResolutionLegendBox.Width = 25;
+    ResolutionLegendBox.Height = 15;
+    ResolutionPad.AddNode(&ResolutionLegendBox);
+    TextBox ResolutionLegendEnergyText(ResolutionLegendX,ResolutionLegendY);
+    ResolutionLegendEnergyText.ShiftY = 5;
+    ResolutionLegendEnergyText.Text = Form("$%s$",sNNTitle.Data());;
+    ResolutionPad.AddNode(&ResolutionLegendEnergyText);
+	  // ResolutionCanvas.AddNode(Form("\\node[color=black, fill=red, line width=0.100000mm, circle, minimum size=2.000000mm, inner sep=0pt, xshift = %s, yshift = %s, draw] at (axis cs: %f,%f){};",LegendMarkerXShift.Data(),LegendFirstRowYShift.Data(),ResolutionLegendX,ResolutionLegendY));
+	  // ResolutionCanvas.AddNode(Form("\\node[color=black, fill=blue, line width=0.100000mm, circle, minimum size=2.000000mm, inner sep=0pt, xshift = %s, yshift = %s, draw] at (axis cs: %f,%f){};",LegendMarkerXShift.Data(),LegendSecndRowYShift.Data(),ResolutionLegendX,ResolutionLegendY));
+    // ResolutionCanvas.AddNode(Form("\\node[anchor=west,align = center, xshift=%s, yshift=%s] at (axis cs: %f,%f){19.6~GeV};",LegendLabelXShift.Data(),LegendFirstRowYShift.Data(),ResolutionLegendX,ResolutionLegendY));
+    // ResolutionCanvas.AddNode(Form("\\node[anchor=west,align = center, xshift=%s, yshift=%s] at (axis cs: %f,%f){27~GeV};",LegendLabelXShift.Data(),LegendSecndRowYShift.Data(),ResolutionLegendX,ResolutionLegendY));
+    ResolutionCanvas.AddPad(ResolutionPad);
     MyTexFile.AddCanvas(ResolutionCanvas);
 }

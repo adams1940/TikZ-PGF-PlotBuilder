@@ -4,49 +4,7 @@
 #include "Graph.h"
 #include "Axis.h"
 #include "Node.h"
-
-class Pad{
-private:
-
-public:
-  Axis XAxis, YAxis;
-  vector<Graph> Graphs;
-  vector<Node *> Nodes;
-  bool DrawZeroLine;
-  double XLabelOffsetY, YLabelOffsetX;
-  double Width, Height; // mm
-
-  Pad(){
-    XLabelOffsetY = -0.07;
-    YLabelOffsetX = -0.161;
-    DrawZeroLine = false;
-    Width = 100;
-    Height = 0.9*Width;
-  }
-  virtual ~Pad(){}
-
-  void AddGraph(Graph &gr){ Graphs.push_back(gr); }
-  void SetLogX(){ XAxis.IsLog = true; }
-  void SetLogY(){ YAxis.IsLog = true; }
-  void SetXTitle(TString Title){ XAxis.Title = Title; }
-  void SetYTitle(TString Title){ YAxis.Title = Title; }
-  void SetXYTitle(TString XTitle, TString YTitle){ 
-    SetXTitle(XTitle);
-    SetYTitle(YTitle);
-  }
-  void SetXRange(double Min, double Max){
-    XAxis.Min = Min;
-    XAxis.Max = Max;
-  }
-
-  void SetYRange(double Min, double Max){
-    YAxis.Min = Min;
-    YAxis.Max = Max;
-  }
-
-  void AddNode(Node * node){ Nodes.push_back(node); }
-
-};
+#include "Pad.h"
 
 class PgfCanvas{
 private:
@@ -159,16 +117,18 @@ public:
   TString AxisOption(TString Text ){
     return Form("\t\t%s,",Text.Data());
   }
+  TString PictureLine(TString Text ){
+    return Form("\t%s",Text.Data());
+  }
 
   vector<TString> LatexLines(){
     vector<TString> Lines;
     for( int ColX = 0; ColX<NumDivisionsX; ColX++ ){
       for( int RowY = 0; RowY<NumDivisionsY; RowY++ ){
-        // for( Pad pad:Pads[ColX][RowY] ){
         for( int iPad = 0; iPad<Pads[ColX][RowY].size(); iPad++ ){
           Pad pad = Pads[ColX][RowY][iPad];
 
-          Lines.push_back("\t\\begin{axis}[");
+          Lines.push_back(PictureLine("\\begin{axis}["));
 
           Lines.push_back(AxisOption(Form("\t\twidth=%fmm",pad.Width)));
           Lines.push_back(AxisOption(Form("\t\theight=%fmm",pad.Height)));
@@ -235,36 +195,33 @@ public:
 
           Lines.push_back("\t]");
 
+          if( pad.DrawZeroLine ) Lines.push_back(PictureLine(Form("\\addplot[color=gray, forget plot, /tikz/densely dotted, ] coordinates{(%f,0)(%f,0)};",pad.XAxis.Min,pad.XAxis.Max)));
+
+          for( Node * node:pad.Nodes ) Lines.push_back(PictureLine(node->LatexLine()));
+
+          for( Graph gr:pad.Graphs ){
+            if( gr.DrawLines ){
+              for( int iPoint=0; iPoint<gr.GetN()-1; iPoint++ ){
+                Lines.push_back(PictureLine(Form("\\draw[line width = %fmm, %s](%f,%f)--(%f,%f);",gr.LineWidth,gr.LineColor.Data(),gr.GetPointX(iPoint),gr.GetPointY(iPoint),gr.GetPointX(iPoint+1),gr.GetPointY(iPoint+1))));
+              }
+            }
+            if( gr.OnlyDrawLines ) continue;
+            Lines.push_back(PictureLine(Form("\\addplot[shift={(%fmm,%fmm)}, scatter, only marks, forget plot, no markers, error bars/.cd, error mark = none, error bar style = {line width=%fmm,solid}, x dir = %s, x explicit, y dir = %s, y explicit]",gr.XShiftDistance,gr.YShiftDistance,gr.ErrorBarStyle.Width,gr.DrawXError?"both":"none",gr.DrawYError?"both":"none")));
+            Lines.push_back(PictureLine("\ttable[x index = 0, x error minus index = 1, x error plus index = 2, y index = 3, y error minus index = 4, y error plus index = 5]{"));
+            for( int iPoint=0; iPoint<gr.GetN(); iPoint++ ){
+              Lines.push_back(PictureLine(Form("\t\t%f %f %f %f %f %f",gr.GetPointX(iPoint),gr.GetErrorXlow(iPoint),gr.GetErrorXhigh(iPoint), gr.GetPointY(iPoint),gr.GetErrorYlow(iPoint),gr.GetErrorYhigh(iPoint))));
+            }
+            Lines.push_back(PictureLine("\t};"));
+
+            for( TString LatexLine:gr.SystematicErrorBoxLatexLines(&pad.XAxis) ) Lines.push_back(PictureLine(LatexLine));
+            for( Marker grMark:gr.MarkerNodes() ) Lines.push_back(PictureLine(grMark.LatexLine()));
+
+          } // for graphs
+
           Lines.push_back("\t\\end{axis}");
         } // iPad
       } // RowY
     } // ColY
-
-
-
-  //       if( Canvas.DrawZeroLinesVector[ColumnX][ColumnY] ) AddPictureLine(Form("\\addplot[color=gray, forget plot, /tikz/densely dotted, ] coordinates{(%f,0)(%f,0)};",Canvas.XAxes[ColumnX].Min,Canvas.XAxes[ColumnX].Max));
-
-  //       for( Node * node:Canvas.Nodes[ColumnX][ColumnY] ) AddPictureLine(node->LatexLine());
-
-  //       for( TString Node:Canvas.AdditionalNodes[ColumnX][ColumnY] ) AddPictureLine(Node.Data());
-
-  //       for( Graph gr:Canvas.Graphs[ColumnX][ColumnY] ){
-  //         if( gr.DrawLines ){
-  //           for( int iPoint=0; iPoint<gr.GetN()-1; iPoint++ ){
-  //             AddPictureLine(Form("\\draw[line width = %fmm, %s](%f,%f)--(%f,%f);",gr.LineWidth,gr.LineColor.Data(),gr.GetPointX(iPoint),gr.GetPointY(iPoint),gr.GetPointX(iPoint+1),gr.GetPointY(iPoint+1)));
-  //           }
-  //         }
-  //         if( gr.OnlyDrawLines ) continue;
-  //         AddPictureLine(Form("\\addplot[shift={(%fmm,%fmm)}, scatter, only marks, forget plot, no markers, error bars/.cd, error mark = none, error bar style = {line width=%fmm,solid}, x dir = %s, x explicit, y dir = %s, y explicit]",gr.XShiftDistance,gr.YShiftDistance,gr.ErrorBarStyle.Width,gr.DrawXError?"both":"none",gr.DrawYError?"both":"none"));
-  //         AddPictureLine("\t table[x index = 0, x error minus index = 1, x error plus index = 2, y index = 3, y error minus index = 4, y error plus index = 5]{");
-  //         for( int iPoint=0; iPoint<gr.GetN(); iPoint++ ){
-  //           AddPictureLine(Form("\t\t%f %f %f %f %f %f",gr.GetPointX(iPoint),gr.GetErrorXlow(iPoint),gr.GetErrorXhigh(iPoint), gr.GetPointY(iPoint),gr.GetErrorYlow(iPoint),gr.GetErrorYhigh(iPoint)));
-  //         }
-  //         AddPictureLine("\t };");
-
-  //         for( TString LatexLine:gr.SystematicErrorBoxLatexLines(&XAxis) ) AddPictureLine(LatexLine);
-  //         for( Marker grMark:gr.MarkerNodes() ) AddPictureLine(grMark.LatexLine());
-  //       }
 
     return Lines;
   }
