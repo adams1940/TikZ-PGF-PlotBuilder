@@ -15,6 +15,7 @@ public:
   bool DrawZeroLine;
   double XLabelOffsetY, YLabelOffsetX;
   double Width, Height; // mm
+  double SubPadX, SubPadY;
 
   Pad(){
     XLabelOffsetY = -0.07;
@@ -22,6 +23,8 @@ public:
     DrawZeroLine = false;
     Width = 100;
     Height = 0.9*Width;
+    SubPadX = 0;
+    SubPadY = 0;
   }
   virtual ~Pad(){}
 

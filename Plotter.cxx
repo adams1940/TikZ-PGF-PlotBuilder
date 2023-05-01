@@ -316,6 +316,13 @@ void Plotter(TString OutputFileCommitHash = "test"){
     {200.0, AlphaChangeFactor*0.240,  AlphaChangeFactor*0.045,  AlphaChangeFactor*0.045,  AlphaChangeFactor*0.061 },
   };
 
+  vector<vector<double>> StarLambdaPolarizationGraphPoints_Comparison; 
+  StarLambdaPolarizationGraphPoints_Comparison.push_back(StarLambdaPolarizationGraphPoints[3]);
+  StarLambdaPolarizationGraphPoints_Comparison.push_back(StarLambdaPolarizationGraphPoints[4]);
+  vector<vector<double>> StarLamBarPolarizationGraphPoints_Comparison; 
+  StarLamBarPolarizationGraphPoints_Comparison.push_back(StarLamBarPolarizationGraphPoints[3]);
+  StarLamBarPolarizationGraphPoints_Comparison.push_back(StarLamBarPolarizationGraphPoints[4]);
+
   vector<vector<double>> AlicLambdaPolarizationGraphPoints = {
     {2760,  AlphaChangeFactor*-0.0785, AlphaChangeFactor*0.102,  AlphaChangeFactor*0.06,   AlphaChangeFactor*0.06  },
     {5020,  AlphaChangeFactor*0.131, AlphaChangeFactor*0.11,   AlphaChangeFactor*0.06,   AlphaChangeFactor*0.06  },
@@ -397,8 +404,12 @@ void Plotter(TString OutputFileCommitHash = "test"){
 
     Graph StarBesILambdaStat, StarBesILambdaSyst;
     SplittingFigureTools::SetStatAndSystGraphs(StarBesILambdaStat,StarBesILambdaSyst,StarLambdaPolarizationGraphPoints);
+    Graph StarBesILambdaStat_Comparison, StarBesILambdaSyst_Comparison;
+    SplittingFigureTools::SetStatAndSystGraphs(StarBesILambdaStat_Comparison,StarBesILambdaSyst_Comparison,StarLambdaPolarizationGraphPoints_Comparison);
     Graph StarBesILamBarStat, StarBesILamBarSyst;
     SplittingFigureTools::SetStatAndSystGraphs(StarBesILamBarStat,StarBesILamBarSyst,StarLamBarPolarizationGraphPoints);
+    Graph StarBesILamBarStat_Comparison, StarBesILamBarSyst_Comparison;
+    SplittingFigureTools::SetStatAndSystGraphs(StarBesILamBarStat_Comparison,StarBesILamBarSyst_Comparison,StarLamBarPolarizationGraphPoints_Comparison);
     Graph StarBesIILambdaStat, StarBesIILambdaSyst;
     SplittingFigureTools::SetStatAndSystGraphs(StarBesIILambdaStat,StarBesIILambdaSyst,NineteenGeVLambdaPolarizationGraphPoints);
     Graph StarBesIILamBarStat, StarBesIILamBarSyst;
@@ -421,8 +432,23 @@ void Plotter(TString OutputFileCommitHash = "test"){
     SplittingFigureTools::DrawBesIILamBar(StarBesIILamBarStat,StarBesIILamBarSyst);
     SplittingFigureTools::DrawAliceLambda(AliceLambdaStat,AliceLambdaSyst);
     SplittingFigureTools::DrawAliceLamBar(AliceLamBarStat,AliceLamBarSyst);
+    Pad PolarizationVsEnergyZoomPad;
+    PolarizationVsEnergyZoomPad.SetLogX();
+    PolarizationVsEnergyZoomPad.SetXRange(15,35);
+    PolarizationVsEnergyZoomPad.SetYRange(-0.5,2);
+    double ZoomWindowSizeFactor = 0.5;
+    PolarizationVsEnergyZoomPad.Width = ZoomWindowSizeFactor*PolarizationVsEnergyPad.Width;
+    PolarizationVsEnergyZoomPad.Height = ZoomWindowSizeFactor*PolarizationVsEnergyPad.Height;
+    PolarizationVsEnergyZoomPad.SubPadX = 200;
+    PolarizationVsEnergyZoomPad.SubPadY = 6;
+    SplittingFigureTools::SetPad(PolarizationVsEnergyZoomPad);
+    SplittingFigureTools::DrawBesILambda(StarBesILambdaStat_Comparison,StarBesILambdaSyst_Comparison);
+    SplittingFigureTools::DrawBesILamBar(StarBesILamBarStat_Comparison,StarBesILamBarSyst_Comparison);
+    SplittingFigureTools::DrawBesIILambda(StarBesIILambdaStat,StarBesIILambdaSyst);
+    SplittingFigureTools::DrawBesIILamBar(StarBesIILamBarStat,StarBesIILamBarSyst);
     EnergyFinalCanvas.cd(0,0);
     EnergyFinalCanvas.AddPad(PolarizationVsEnergyPad);
+    EnergyFinalCanvas.AddPad(PolarizationVsEnergyZoomPad);
     Pad SplittingVsEnergyPad;
     SplittingVsEnergyPad.SetLogX();
     SplittingVsEnergyPad.SetXYTitle(sNNTitle,"P_{\\bar{\\Lambda}}-P_{\\Lambda}~(\\%)");

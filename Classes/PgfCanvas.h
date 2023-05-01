@@ -113,6 +113,7 @@ public:
   }
 
   TString CanvasName(int ColX, int RowY, int iPad){ return Form("ColX%i_RowY%i_Pad%i",ColX,RowY,iPad); }
+  TString SubPadCoordinateName(int ColX, int RowY, int iPad){ return Form("ColX%iRowY%iSubPad%iPosition",ColX,RowY,iPad); }
 
   TString AxisOption(TString Text ){
     return Form("\t\t%s,",Text.Data());
@@ -151,6 +152,10 @@ public:
               Lines.push_back(AxisOption(Form("\t\tat=(%s.east)",CanvasName(ColX-1,RowY,0).Data())));
               Lines.push_back(AxisOption("\t\tanchor=west"));
             }
+          }
+          if( iPad>0 ){
+            Lines.push_back(AxisOption(Form("\t\tat={(%s)}",SubPadCoordinateName(ColX,RowY,iPad).Data())));
+            Lines.push_back(AxisOption("\t\tanchor=center"));
           }
 
           if( RowY<NumDivisionsY-1 ) Lines.push_back(AxisOption("\t\txticklabels={}"));
@@ -217,6 +222,12 @@ public:
             for( Marker grMark:gr.MarkerNodes() ) Lines.push_back(PictureLine(grMark.LatexLine()));
 
           } // for graphs
+
+          if( iPad==0 ){
+            for( int jPad=1; jPad<Pads[ColX][RowY].size(); jPad++ ){
+              Lines.push_back(PictureLine(Form("\\coordinate (%s) at (axis cs: %f,%f);",SubPadCoordinateName(ColX,RowY,jPad).Data(),Pads[ColX][RowY][jPad].SubPadX,Pads[ColX][RowY][jPad].SubPadY)));
+            }
+          }
 
           Lines.push_back("\t\\end{axis}");
         } // iPad
