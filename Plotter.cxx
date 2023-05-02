@@ -7,7 +7,7 @@ TString sNNTitle = "\\sqrt{s_\\mathrm{NN}}";
 #include "Classes/TextBox.h"
 #include "Classes/ErrorBar.h"
 #include "Classes/Graph.h"
-#include "Classes/PgfCanvas.h"
+#include "Classes/Canvas.h"
 #include "Classes/TexFile.h"
 #include "Classes/Pad.h"
 
@@ -16,13 +16,14 @@ namespace SplittingFigureTools{
   Marker BesILambdaMarkerStyle, BesILamBarMarkerStyle;
   Marker AliceLambdaMarkerStyle, AliceLamBarMarkerStyle;
   Marker BesISplittingMarkerStyle, BesIISplittingMarkerStyle, AliceSplittingMarkerStyle;
-  double XShift;
+  double XShift, XShiftComparisonFactor;
   Pad * pad;
   double BesISizeFactor;
   TString LambdaFillColor, LamBarFillColor, LamBarInnerFillColor, GrayColor;
 
   void SetMarkerStyles(){
     XShift = .5;
+    XShiftComparisonFactor = 3; // How much MORE are we moving points over for the energy comparison
     BesISizeFactor = 0.7;
     LambdaFillColor = "{rgb:red,51;green,102;blue,255}";
     LamBarFillColor = "{rgb:red,204;green,16;blue,0}";
@@ -110,8 +111,24 @@ vector<vector<double>> Splitting(vector<vector<double>> LambdaPoints, vector<vec
     StatGraph.AddMarkerStyle(BesISplittingMarkerStyle);
     DrawData(StatGraph,SystGraph);
   }
+  void DrawBesISplitting_Comparison(vector<vector<double>> LambdaPoints, vector<vector<double>> LamBarPoints){
+    vector<vector<double>> SplittingPoints = Splitting(LambdaPoints,LamBarPoints);
+    Graph StatGraph, SystGraph;
+    StatGraph.XShiftDistance = -XShift;
+    SetStatAndSystGraphs(StatGraph,SystGraph,SplittingPoints);
+    StatGraph.AddMarkerStyle(BesISplittingMarkerStyle);
+    DrawData(StatGraph,SystGraph);
+  }
 
   void DrawBesIISplitting(vector<vector<double>> LambdaPoints, vector<vector<double>> LamBarPoints){
+    vector<vector<double>> SplittingPoints = Splitting(LambdaPoints,LamBarPoints);
+    Graph StatGraph, SystGraph;
+    StatGraph.XShiftDistance = XShift;
+    SetStatAndSystGraphs(StatGraph,SystGraph,SplittingPoints);
+    StatGraph.AddMarkerStyle(BesIISplittingMarkerStyle);
+    DrawData(StatGraph,SystGraph);
+  }
+  void DrawBesIISplitting_Zoom(vector<vector<double>> LambdaPoints, vector<vector<double>> LamBarPoints){
     vector<vector<double>> SplittingPoints = Splitting(LambdaPoints,LamBarPoints);
     Graph StatGraph, SystGraph;
     SetStatAndSystGraphs(StatGraph,SystGraph,SplittingPoints);
@@ -137,15 +154,46 @@ vector<vector<double>> Splitting(vector<vector<double>> LambdaPoints, vector<vec
     StatGraph.XShiftDistance = XShift;
     DrawData(StatGraph,SystGraph);
   }
+  void DrawBesILambda_Comparison(Graph &StatGraph, Graph &SystGraph){
+    StatGraph.AddMarkerStyle(BesILambdaMarkerStyle);
+    StatGraph.XShiftDistance = -1.5*XShift;
+    DrawData(StatGraph,SystGraph);
+  }
+  void DrawBesILamBar_Comparison(Graph &StatGraph, Graph &SystGraph){
+    StatGraph.AddMarkerStyle(BesILamBarMarkerStyle);
+    StatGraph.XShiftDistance = 0.5*XShift;
+    DrawData(StatGraph,SystGraph);
+  }
   void DrawBesIILambda(Graph &StatGraph, Graph &SystGraph){
     StatGraph.AddMarkerStyle(BesIILambdaMarkerStyle);
-    StatGraph.XShiftDistance = -XShift;
+    StatGraph.XShiftDistance = -0.5*XShift;
     DrawData(StatGraph,SystGraph);
   }
   void DrawBesIILamBar(Graph &StatGraph, Graph &SystGraph){
     StatGraph.AddMarkerStyle(BesIILamBarMarkerStyle);
     StatGraph.AddMarkerStyle(BesIILamBarInnerMarkerStyle);
-    StatGraph.XShiftDistance = XShift;
+    StatGraph.XShiftDistance = 1.5*XShift;
+    DrawData(StatGraph,SystGraph);
+  }
+  void DrawBesILambda_Comparison_Zoom(Graph &StatGraph, Graph &SystGraph){
+    StatGraph.AddMarkerStyle(BesILambdaMarkerStyle);
+    StatGraph.XShiftDistance = -1.5*XShiftComparisonFactor*XShift;
+    DrawData(StatGraph,SystGraph);
+  }
+  void DrawBesILamBar_Comparison_Zoom(Graph &StatGraph, Graph &SystGraph){
+    StatGraph.AddMarkerStyle(BesILamBarMarkerStyle);
+    StatGraph.XShiftDistance = 0.5*XShiftComparisonFactor*XShift;
+    DrawData(StatGraph,SystGraph);
+  }
+  void DrawBesIILambda_Zoom(Graph &StatGraph, Graph &SystGraph){
+    StatGraph.AddMarkerStyle(BesIILambdaMarkerStyle);
+    StatGraph.XShiftDistance = -0.5*XShiftComparisonFactor*XShift;
+    DrawData(StatGraph,SystGraph);
+  }
+  void DrawBesIILamBar_Zoom(Graph &StatGraph, Graph &SystGraph){
+    StatGraph.AddMarkerStyle(BesIILamBarMarkerStyle);
+    StatGraph.AddMarkerStyle(BesIILamBarInnerMarkerStyle);
+    StatGraph.XShiftDistance = 1.5*XShiftComparisonFactor*XShift;
     DrawData(StatGraph,SystGraph);
   }
   void DrawAliceLambda(Graph &StatGraph, Graph &SystGraph){
@@ -298,8 +346,6 @@ void Plotter(TString OutputFileCommitHash = "test"){
     {7.7,   AlphaChangeFactor*2.039,  AlphaChangeFactor*0.628,  AlphaChangeFactor*0.2,    AlphaChangeFactor*0.0   },
     {11.5,  AlphaChangeFactor*1.344,  AlphaChangeFactor*0.396,  AlphaChangeFactor*0.2,    AlphaChangeFactor*0.0   },
     {14.5,  AlphaChangeFactor*1.321,  AlphaChangeFactor*0.482,  AlphaChangeFactor*0.3,    AlphaChangeFactor*0.0   },
-    {19.6,  AlphaChangeFactor*0.950,  AlphaChangeFactor*0.305,  AlphaChangeFactor*0.2,    AlphaChangeFactor*0.0   },
-    {27.0,  AlphaChangeFactor*1.047,  AlphaChangeFactor*0.282,  AlphaChangeFactor*0.2,    AlphaChangeFactor*0.0   },
     {39.0,  AlphaChangeFactor*0.506,  AlphaChangeFactor*0.424,  AlphaChangeFactor*0.2,    AlphaChangeFactor*0.0   },
     {62.4,  AlphaChangeFactor*1.334,  AlphaChangeFactor*1.167,  AlphaChangeFactor*0.2,    AlphaChangeFactor*0.0   },
     {200.0, AlphaChangeFactor*0.277,  AlphaChangeFactor*0.040,  AlphaChangeFactor*0.049,  AlphaChangeFactor*0.039 },
@@ -309,19 +355,25 @@ void Plotter(TString OutputFileCommitHash = "test"){
     {7.7,   AlphaChangeFactor*8.669,  AlphaChangeFactor*3.569,  AlphaChangeFactor*1.00,   AlphaChangeFactor*0.0   },
     {11.5,  AlphaChangeFactor*1.802,  AlphaChangeFactor*1.261,  AlphaChangeFactor*0.15,   AlphaChangeFactor*0.0   },
     {14.5,  AlphaChangeFactor*2.276,  AlphaChangeFactor*1.210,  AlphaChangeFactor*0.15,   AlphaChangeFactor*0.4   },
-    {19.6,  AlphaChangeFactor*1.515,  AlphaChangeFactor*0.610,  AlphaChangeFactor*0.15,   AlphaChangeFactor*0.0   },
-    {27.0,  AlphaChangeFactor*1.245,  AlphaChangeFactor*0.471,  AlphaChangeFactor*0.15,   AlphaChangeFactor*0.0   },
     {39.0,  AlphaChangeFactor*0.938,  AlphaChangeFactor*0.615,  AlphaChangeFactor*0.15,   AlphaChangeFactor*0.0   },
     {62.4,  AlphaChangeFactor*1.712,  AlphaChangeFactor*1.592,  AlphaChangeFactor*0.15,   AlphaChangeFactor*0.0   },
     {200.0, AlphaChangeFactor*0.240,  AlphaChangeFactor*0.045,  AlphaChangeFactor*0.045,  AlphaChangeFactor*0.061 },
   };
 
-  vector<vector<double>> StarLambdaPolarizationGraphPoints_Comparison; 
-  StarLambdaPolarizationGraphPoints_Comparison.push_back(StarLambdaPolarizationGraphPoints[3]);
-  StarLambdaPolarizationGraphPoints_Comparison.push_back(StarLambdaPolarizationGraphPoints[4]);
-  vector<vector<double>> StarLamBarPolarizationGraphPoints_Comparison; 
-  StarLamBarPolarizationGraphPoints_Comparison.push_back(StarLamBarPolarizationGraphPoints[3]);
-  StarLamBarPolarizationGraphPoints_Comparison.push_back(StarLamBarPolarizationGraphPoints[4]);
+  // vector<vector<double>> StarLambdaPolarizationGraphPoints_Comparison; 
+  // StarLambdaPolarizationGraphPoints_Comparison.push_back(StarLambdaPolarizationGraphPoints[3]);
+  // StarLambdaPolarizationGraphPoints_Comparison.push_back(StarLambdaPolarizationGraphPoints[4]);
+  // vector<vector<double>> StarLamBarPolarizationGraphPoints_Comparison; 
+  // StarLamBarPolarizationGraphPoints_Comparison.push_back(StarLamBarPolarizationGraphPoints[3]);
+  // StarLamBarPolarizationGraphPoints_Comparison.push_back(StarLamBarPolarizationGraphPoints[4]);
+  vector<vector<double>> StarLambdaPolarizationGraphPoints_Comparison{
+    {19.6,  AlphaChangeFactor*0.950,  AlphaChangeFactor*0.305,  AlphaChangeFactor*0.2,    AlphaChangeFactor*0.0   },
+    {27.0,  AlphaChangeFactor*1.047,  AlphaChangeFactor*0.282,  AlphaChangeFactor*0.2,    AlphaChangeFactor*0.0   },
+  };
+  vector<vector<double>> StarLamBarPolarizationGraphPoints_Comparison{
+    {19.6,  AlphaChangeFactor*1.515,  AlphaChangeFactor*0.610,  AlphaChangeFactor*0.15,   AlphaChangeFactor*0.0   },
+    {27.0,  AlphaChangeFactor*1.245,  AlphaChangeFactor*0.471,  AlphaChangeFactor*0.15,   AlphaChangeFactor*0.0   },
+  };
 
   vector<vector<double>> AlicLambdaPolarizationGraphPoints = {
     {2760,  AlphaChangeFactor*-0.0785, AlphaChangeFactor*0.102,  AlphaChangeFactor*0.06,   AlphaChangeFactor*0.06  },
@@ -336,7 +388,7 @@ void Plotter(TString OutputFileCommitHash = "test"){
     TexFile MyTexFile(OutputFileCommitHash);
     SplittingFigureTools::SetMarkerStyles();
 
-    PgfCanvas CentralityCanvas(1,2);
+    Canvas CentralityCanvas(1,2);
     Pad CentralityPad19, CentralityPad27;
     CentralityPad19.SetXYTitle("\\mathrm{Centrality}~(\\%)",PolarizationTitle);
     CentralityPad19.SetXRange(-5,85);
@@ -358,7 +410,7 @@ void Plotter(TString OutputFileCommitHash = "test"){
     CentralityCanvas.AddPad(CentralityPad27);
     MyTexFile.AddCanvas(CentralityCanvas);
 
-    PgfCanvas PtCanvas(1,2);
+    Canvas PtCanvas(1,2);
     Pad PtPad19, PtPad27;
     PtPad19.SetXYTitle("p_{\\mathrm{T}}~(\\mathrm{GeV}/c)",PolarizationTitle);
     PtPad19.SetXRange(0.3,3.7);
@@ -380,7 +432,7 @@ void Plotter(TString OutputFileCommitHash = "test"){
     PtCanvas.AddPad(PtPad27);
     MyTexFile.AddCanvas(PtCanvas);
 
-    PgfCanvas RapidityCanvas(1,2);
+    Canvas RapidityCanvas(1,2);
     Pad RapidityPad19, RapidityPad27;
     RapidityPad19.SetXYTitle("y",PolarizationTitle);
     RapidityPad19.SetXRange(-1.7,1.7);
@@ -419,47 +471,66 @@ void Plotter(TString OutputFileCommitHash = "test"){
     Graph AliceLamBarStat, AliceLamBarSyst;
     SplittingFigureTools::SetStatAndSystGraphs(AliceLamBarStat,AliceLamBarSyst,AlicLamBarPolarizationGraphPoints);
 
-    PgfCanvas EnergyFinalCanvas(1,2);
+    Canvas EnergyFinalCanvas(1,2);
     Pad PolarizationVsEnergyPad;
     PolarizationVsEnergyPad.SetLogX();
+    PolarizationVsEnergyPad.DrawZeroLine = true;
     PolarizationVsEnergyPad.SetXYTitle(sNNTitle,PolarizationTitle);
-    PolarizationVsEnergyPad.SetXRange(1.5,9000);
+    PolarizationVsEnergyPad.SetXRange(1.5,10000);
     PolarizationVsEnergyPad.SetYRange(-1,12);
     SplittingFigureTools::SetPad(PolarizationVsEnergyPad);
     SplittingFigureTools::DrawBesILambda(StarBesILambdaStat,StarBesILambdaSyst);
     SplittingFigureTools::DrawBesILamBar(StarBesILamBarStat,StarBesILamBarSyst);
+    SplittingFigureTools::DrawBesILambda_Comparison(StarBesILambdaStat_Comparison,StarBesILambdaSyst_Comparison);
+    SplittingFigureTools::DrawBesILamBar_Comparison(StarBesILamBarStat_Comparison,StarBesILamBarSyst_Comparison);
     SplittingFigureTools::DrawBesIILambda(StarBesIILambdaStat,StarBesIILambdaSyst);
     SplittingFigureTools::DrawBesIILamBar(StarBesIILamBarStat,StarBesIILamBarSyst);
     SplittingFigureTools::DrawAliceLambda(AliceLambdaStat,AliceLambdaSyst);
     SplittingFigureTools::DrawAliceLamBar(AliceLamBarStat,AliceLamBarSyst);
     Pad PolarizationVsEnergyZoomPad;
-    PolarizationVsEnergyZoomPad.SetLogX();
-    PolarizationVsEnergyZoomPad.SetXRange(15,35);
-    PolarizationVsEnergyZoomPad.SetYRange(-0.5,2);
-    double ZoomWindowSizeFactor = 0.5;
+    PolarizationVsEnergyZoomPad.XAxis.CustomMajorTicks = {19.6,27};
+    PolarizationVsEnergyZoomPad.XAxis.NumMinorTicks = 0;
+    PolarizationVsEnergyZoomPad.SetXRange(15,32);
+    PolarizationVsEnergyZoomPad.SetYRange(0,2.1);
+    double ZoomWindowSizeFactor = 0.49;
     PolarizationVsEnergyZoomPad.Width = ZoomWindowSizeFactor*PolarizationVsEnergyPad.Width;
     PolarizationVsEnergyZoomPad.Height = ZoomWindowSizeFactor*PolarizationVsEnergyPad.Height;
-    PolarizationVsEnergyZoomPad.SubPadX = 200;
-    PolarizationVsEnergyZoomPad.SubPadY = 6;
+    PolarizationVsEnergyZoomPad.SubPadX = 1150;
+    PolarizationVsEnergyZoomPad.SubPadY = 4;
     SplittingFigureTools::SetPad(PolarizationVsEnergyZoomPad);
-    SplittingFigureTools::DrawBesILambda(StarBesILambdaStat_Comparison,StarBesILambdaSyst_Comparison);
-    SplittingFigureTools::DrawBesILamBar(StarBesILamBarStat_Comparison,StarBesILamBarSyst_Comparison);
-    SplittingFigureTools::DrawBesIILambda(StarBesIILambdaStat,StarBesIILambdaSyst);
-    SplittingFigureTools::DrawBesIILamBar(StarBesIILamBarStat,StarBesIILamBarSyst);
+    SplittingFigureTools::DrawBesILambda_Comparison_Zoom(StarBesILambdaStat_Comparison,StarBesILambdaSyst_Comparison);
+    SplittingFigureTools::DrawBesILamBar_Comparison_Zoom(StarBesILamBarStat_Comparison,StarBesILamBarSyst_Comparison);
+    SplittingFigureTools::DrawBesIILambda_Zoom(StarBesIILambdaStat,StarBesIILambdaSyst);
+    SplittingFigureTools::DrawBesIILamBar_Zoom(StarBesIILamBarStat,StarBesIILamBarSyst);
     EnergyFinalCanvas.cd(0,0);
     EnergyFinalCanvas.AddPad(PolarizationVsEnergyPad);
     EnergyFinalCanvas.AddPad(PolarizationVsEnergyZoomPad);
     Pad SplittingVsEnergyPad;
     SplittingVsEnergyPad.SetLogX();
+    SplittingVsEnergyPad.DrawZeroLine = true;
     SplittingVsEnergyPad.SetXYTitle(sNNTitle,"P_{\\bar{\\Lambda}}-P_{\\Lambda}~(\\%)");
-    SplittingVsEnergyPad.SetXRange(1.5,9000);
-    SplittingVsEnergyPad.SetYRange(-1.6,2.4);
+    SplittingVsEnergyPad.SetXRange(1.5,10000);
+    SplittingVsEnergyPad.SetYRange(-1.69,2.35);
     SplittingFigureTools::SetPad(SplittingVsEnergyPad);
     SplittingFigureTools::DrawBesISplitting(StarLambdaPolarizationGraphPoints,StarLamBarPolarizationGraphPoints);
+    SplittingFigureTools::DrawBesISplitting_Comparison(StarLambdaPolarizationGraphPoints_Comparison,StarLamBarPolarizationGraphPoints_Comparison);
     SplittingFigureTools::DrawBesIISplitting(NineteenGeVLambdaPolarizationGraphPoints,NineteenGeVLamBarPolarizationGraphPoints);
     SplittingFigureTools::DrawAliceSplitting(AlicLambdaPolarizationGraphPoints,AlicLamBarPolarizationGraphPoints);
+    Pad SplittingVsEnergyZoomPad;
+    SplittingVsEnergyZoomPad.XAxis.CustomMajorTicks = {19.6,27};
+    SplittingVsEnergyZoomPad.XAxis.NumMinorTicks = 0;
+    SplittingVsEnergyZoomPad.DrawZeroLine = true;
+    SplittingVsEnergyZoomPad.SetXRange(15,32);
+    SplittingVsEnergyZoomPad.SetYRange(-0.22,0.31);
+    SplittingVsEnergyZoomPad.Width = ZoomWindowSizeFactor*SplittingVsEnergyPad.Width;
+    SplittingVsEnergyZoomPad.Height = ZoomWindowSizeFactor*SplittingVsEnergyPad.Height;
+    SplittingVsEnergyZoomPad.SubPadX = 1150;
+    SplittingVsEnergyZoomPad.SubPadY = 1.38;
+    SplittingFigureTools::SetPad(SplittingVsEnergyZoomPad);
+    SplittingFigureTools::DrawBesIISplitting_Zoom(NineteenGeVLambdaPolarizationGraphPoints,NineteenGeVLamBarPolarizationGraphPoints);
     EnergyFinalCanvas.cd(0,1);
     EnergyFinalCanvas.AddPad(SplittingVsEnergyPad);
+    EnergyFinalCanvas.AddPad(SplittingVsEnergyZoomPad);
     MyTexFile.AddCanvas(EnergyFinalCanvas);
 
     double Res19GeV[] = {0.2048, 0.371, 0.4768, 0.5418, 0.5773, 0.5924, 0.5932, 0.5826, 0.563, 0.5343, 0.495, 0.4474, 0.399, 0.3499, 0.3015, 0.2599};
@@ -470,7 +541,7 @@ void Plotter(TString OutputFileCommitHash = "test"){
     Graph Resolution27GeV = ConvertTh1ToGraph( *((TH1D*)ResolutionFile27GeV.Get("Centrality_Resolution_FullEpd")) );
     for( int i=0; i<Resolution19GeV.GetN(); i++ ) Resolution19GeV.SetPointY(i,Res19GeV[i]);
     for( int i=0; i<Resolution27GeV.GetN(); i++ ) Resolution27GeV.SetPointY(i,Res27GeV[i]);
-    PgfCanvas ResolutionCanvas(1,1);
+    Canvas ResolutionCanvas(1,1);
     Pad ResolutionPad;
     ResolutionPad.SetXYTitle("\\mathrm{Centrality}~(\\%)","R_{\\mathrm{EP}}^{(1)}");
     ResolutionPad.SetXRange(-5,85);
@@ -487,23 +558,29 @@ void Plotter(TString OutputFileCommitHash = "test"){
     ResolutionPad.AddGraph(Resolution19GeV);
     ResolutionPad.AddGraph(Resolution27GeV);
     double ResolutionLegendX = 25, ResolutionLegendY = 0.25;
-    TString TitleYShift = "5mm";
-    TString LegendMarkerXShift = "-8mm";
-    TString LegendLabelXShift = "-5mm";
-    TString LegendFirstRowYShift = "0mm";
-    TString LegendSecndRowYShift = "-5mm";
+    double ResolutionLegendMarkerXShift = -8;
+    double ResolutionLegendLabelXShift = -5;
+    double ResolutionLegendFirstRowYShift = 0;
+    double ResolutionLegendSecndRowYShift = -5;
+    double ResolutionLegendEnergyTextYShift = 5;
     Box ResolutionLegendBox(ResolutionLegendX,ResolutionLegendY);
     ResolutionLegendBox.Width = 25;
     ResolutionLegendBox.Height = 15;
     ResolutionPad.AddNode(&ResolutionLegendBox);
     TextBox ResolutionLegendEnergyText(ResolutionLegendX,ResolutionLegendY);
     ResolutionLegendEnergyText.ShiftY = 5;
-    ResolutionLegendEnergyText.Text = Form("$%s$",sNNTitle.Data());;
     ResolutionPad.AddNode(&ResolutionLegendEnergyText);
-	  // ResolutionCanvas.AddNode(Form("\\node[color=black, fill=red, line width=0.100000mm, circle, minimum size=2.000000mm, inner sep=0pt, xshift = %s, yshift = %s, draw] at (axis cs: %f,%f){};",LegendMarkerXShift.Data(),LegendFirstRowYShift.Data(),ResolutionLegendX,ResolutionLegendY));
-	  // ResolutionCanvas.AddNode(Form("\\node[color=black, fill=blue, line width=0.100000mm, circle, minimum size=2.000000mm, inner sep=0pt, xshift = %s, yshift = %s, draw] at (axis cs: %f,%f){};",LegendMarkerXShift.Data(),LegendSecndRowYShift.Data(),ResolutionLegendX,ResolutionLegendY));
-    // ResolutionCanvas.AddNode(Form("\\node[anchor=west,align = center, xshift=%s, yshift=%s] at (axis cs: %f,%f){19.6~GeV};",LegendLabelXShift.Data(),LegendFirstRowYShift.Data(),ResolutionLegendX,ResolutionLegendY));
-    // ResolutionCanvas.AddNode(Form("\\node[anchor=west,align = center, xshift=%s, yshift=%s] at (axis cs: %f,%f){27~GeV};",LegendLabelXShift.Data(),LegendSecndRowYShift.Data(),ResolutionLegendX,ResolutionLegendY));
+    ResolutionPad.DrawLegendTitleAt(Form("$%s$",sNNTitle.Data()),ResolutionLegendX,0,ResolutionLegendY,ResolutionLegendEnergyTextYShift);
+    ResolutionPad.DrawLegendMarkerAt(Resolution19GeV,ResolutionLegendX,ResolutionLegendMarkerXShift,ResolutionLegendY,ResolutionLegendFirstRowYShift);
+    ResolutionPad.DrawLegendMarkerAt(Resolution27GeV,ResolutionLegendX,ResolutionLegendMarkerXShift,ResolutionLegendY,ResolutionLegendSecndRowYShift);
+    ResolutionPad.DrawLegendTextAt("19.6 GeV",ResolutionLegendX,ResolutionLegendLabelXShift,ResolutionLegendY,ResolutionLegendFirstRowYShift);
+    ResolutionPad.DrawLegendTextAt("27 GeV",ResolutionLegendX,ResolutionLegendLabelXShift,ResolutionLegendY,ResolutionLegendSecndRowYShift);
     ResolutionCanvas.AddPad(ResolutionPad);
     MyTexFile.AddCanvas(ResolutionCanvas);
 }
+
+// class Legend{
+// private:
+// public:
+//   double 
+// };
