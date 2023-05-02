@@ -158,9 +158,9 @@ public:
             Lines.push_back(AxisOption("\t\tanchor=center"));
           }
 
-          if( RowY<NumDivisionsY-1 ) Lines.push_back(AxisOption("\t\txticklabels={}"));
+          if( RowY<NumDivisionsY-1 && iPad==0 ) Lines.push_back(AxisOption("\t\txticklabels={}"));
           else Lines.push_back(AxisOption(Form("\t\txlabel={%s\\(%s\\)}",pad.XAxis.TitleSize.Data(),pad.XAxis.Title.Data())));
-          if( ColX>0 ) Lines.push_back(AxisOption("\t\tyticklabels={}"));
+          if( ColX>0 && iPad==0 ) Lines.push_back(AxisOption("\t\tyticklabels={}"));
           else Lines.push_back(AxisOption(Form("\t\tylabel={%s\\(%s\\)}",pad.YAxis.TitleSize.Data(),pad.YAxis.Title.Data())));
 
           if( pad.XAxis.CustomMajorTicks.size()>0 ){
