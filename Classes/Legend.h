@@ -21,6 +21,7 @@ public:
     CenterY = 0;
     BorderWidth = 0;
     BorderHeight = 0;
+    Border.FillColor = "{rgb:black,1;white,25}";
   }
   virtual ~Legend(){};
 
@@ -50,6 +51,10 @@ public:
     BorderHeight = h;
     Border.Width = w;
     Border.Height = h;
+  }
+
+  void SetFillColor(TString Color){
+    Border.FillColor = Color;
   }
 
   bool ColXIsValid(int ColX){

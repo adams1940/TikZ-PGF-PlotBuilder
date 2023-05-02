@@ -122,8 +122,6 @@ public:
 
           if( pad.DrawZeroLine ) Lines.push_back(PictureLine(Form("\\addplot[color=gray, forget plot, /tikz/densely dotted, ] coordinates{(%f,0)(%f,0)};",pad.XAxis.Min,pad.XAxis.Max)));
 
-          for( Node * node:pad.Nodes ) Lines.push_back(PictureLine(node->LatexLine()));
-
           for( Graph gr:pad.Graphs ){
             if( gr.DrawLines ){
               for( int iPoint=0; iPoint<gr.GetN()-1; iPoint++ ){
@@ -148,6 +146,8 @@ public:
               Lines.push_back(PictureLine(Form("\\coordinate (%s) at (axis cs: %f,%f);",SubPadCoordinateName(ColX,RowY,jPad).Data(),Pads[ColX][RowY][jPad].SubPadX,Pads[ColX][RowY][jPad].SubPadY)));
             }
           }
+
+          for( Node * node:pad.Nodes ) Lines.push_back(PictureLine(node->LatexLine()));
 
           Lines.push_back("\t\\end{axis}");
         } // iPad

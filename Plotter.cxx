@@ -105,6 +105,11 @@ vector<vector<double>> Splitting(vector<vector<double>> LambdaPoints, vector<vec
     pad->AddGraph(StatGraph);
   }
 
+  Graph BesISplittingGraphStyle(){
+    Graph StatGraph;
+    StatGraph.AddMarkerStyle(BesISplittingMarkerStyle);
+    return StatGraph;
+  }
   void DrawBesISplitting(vector<vector<double>> LambdaPoints, vector<vector<double>> LamBarPoints){
     vector<vector<double>> SplittingPoints = Splitting(LambdaPoints,LamBarPoints);
     Graph StatGraph, SystGraph;
@@ -121,6 +126,11 @@ vector<vector<double>> Splitting(vector<vector<double>> LambdaPoints, vector<vec
     DrawData(StatGraph,SystGraph);
   }
 
+  Graph BesIISplittingGraphStyle(){
+    Graph StatGraph;
+    StatGraph.AddMarkerStyle(BesIISplittingMarkerStyle);
+    return StatGraph;
+  }
   void DrawBesIISplitting(vector<vector<double>> LambdaPoints, vector<vector<double>> LamBarPoints){
     vector<vector<double>> SplittingPoints = Splitting(LambdaPoints,LamBarPoints);
     Graph StatGraph, SystGraph;
@@ -137,6 +147,11 @@ vector<vector<double>> Splitting(vector<vector<double>> LambdaPoints, vector<vec
     DrawData(StatGraph,SystGraph);
   }
 
+  Graph AliceSplittingGraphStyle(){
+    Graph StatGraph;
+    StatGraph.AddMarkerStyle(AliceSplittingMarkerStyle);
+    return StatGraph;
+  }
   void DrawAliceSplitting(vector<vector<double>> LambdaPoints, vector<vector<double>> LamBarPoints){
     vector<vector<double>> SplittingPoints = Splitting(LambdaPoints,LamBarPoints);
     Graph StatGraph, SystGraph;
@@ -164,6 +179,17 @@ vector<vector<double>> Splitting(vector<vector<double>> LambdaPoints, vector<vec
     StatGraph.AddMarkerStyle(BesILamBarMarkerStyle);
     StatGraph.XShiftDistance = 0.5*XShift;
     DrawData(StatGraph,SystGraph);
+  }
+  Graph BesIILambdaGraphStyle(){
+    Graph StatGraph;
+    StatGraph.AddMarkerStyle(BesIILambdaMarkerStyle);
+    return StatGraph;
+  }
+  Graph BesIILamBarGraphStyle(){
+    Graph StatGraph;
+    StatGraph.AddMarkerStyle(BesIILamBarMarkerStyle);
+    StatGraph.AddMarkerStyle(BesIILamBarInnerMarkerStyle);
+    return StatGraph;
   }
   void DrawBesIILambda(Graph &StatGraph, Graph &SystGraph){
     StatGraph.AddMarkerStyle(BesIILambdaMarkerStyle);
@@ -217,6 +243,7 @@ vector<vector<double>> Splitting(vector<vector<double>> LambdaPoints, vector<vec
   void DrawLambdaPointLegend(double x, double y){
     double XShift = 2.5, TitleYShift = 0, MarkerYShift = -2.5;
     Box * Background = new Box(x,y); 
+    Background->FillColor = "{rgb:black,1;white,25}";
     pad->AddNode(Background);
     TextBox * LambdaTitle = new TextBox(x,y);
     LambdaTitle->Text = "$\\Lambda$";
@@ -243,6 +270,17 @@ vector<vector<double>> Splitting(vector<vector<double>> LambdaPoints, vector<vec
     LamBarInnerLegendMarker->SetAnchorPosition(x,y);
     LamBarInnerLegendMarker->Shift(XShift,MarkerYShift);
     pad->AddNode(LamBarInnerLegendMarker);
+
+    // Legend LambdaPointLegend(2,2);
+    // LambdaPointLegend.SetCenter(x,y);
+    // LambdaPointLegend.SetBorderSize(10,10);
+    // LambdaPointLegend.AddText(0,0,"$\\Lambda$","south");
+    // LambdaPointLegend.AddText(1,0,"\\raisebox{0.5mm}{$\\bar{\\Lambda}$}","south");
+    // LambdaPointLegend.AddMarker(0,1,BesIILambdaGraphStyle());
+    // LambdaPointLegend.AddMarker(1,1,BesIILamBarGraphStyle());
+    // LambdaPointLegend.SetXShifts(vector<double>{-2.5,2.5});
+    // LambdaPointLegend.SetYShifts(vector<double>{0,-2.5});
+    // pad->AddLegend(LambdaPointLegend);
   }
 }; // SplittingFigureTools
 
@@ -392,41 +430,43 @@ void Plotter(TString OutputFileCommitHash = "test"){
     Canvas CentralityCanvas(1,2);
     Pad CentralityPad19, CentralityPad27;
     CentralityPad19.SetXYTitle("\\mathrm{Centrality}~(\\%)",PolarizationTitle);
-    CentralityPad19.SetXRange(-5,85);
-    CentralityPad19.SetYRange(-0.65,3.65);
+    CentralityPad19.SetXRange(-5,90);
+    CentralityPad19.SetYRange(-0.7,3.6);
     CentralityPad19.DrawZeroLine = true;
     CentralityPad27.SetPlottingStyle(CentralityPad19);
     SplittingFigureTools::SetPad(CentralityPad19);
     SplittingFigureTools::DrawBesIILambda(LambdaStatGraph19GeVCentrality,LambdaSystGraph19GeVCentrality);
     SplittingFigureTools::DrawBesIILamBar(LamBarStatGraph19GeVCentrality,LamBarSystGraph19GeVCentrality);
-    SplittingFigureTools::DrawInfoText("19.6","$p_{\\mathrm{T}}>0.5$~GeV/$c$, $|y|<1$",22,2.8);
-    SplittingFigureTools::DrawLambdaPointLegend(15,1.5);
+    SplittingFigureTools::DrawInfoText("19.6","$p_{\\mathrm{T}}>0.5$~GeV/$c$, $|y|<1$",30,3);
+    SplittingFigureTools::DrawLambdaPointLegend(10,2.2);
     SplittingFigureTools::SetPad(CentralityPad27);
     SplittingFigureTools::DrawBesIILambda(LambdaStatGraph27GeVCentrality,LambdaSystGraph27GeVCentrality);
     SplittingFigureTools::DrawBesIILamBar(LamBarStatGraph27GeVCentrality,LamBarSystGraph27GeVCentrality);
-    SplittingFigureTools::DrawInfoText("27","$p_{\\mathrm{T}}>0.5$~GeV/$c$, $|y|<1$",22,2.8);
+    SplittingFigureTools::DrawInfoText("27","$p_{\\mathrm{T}}>0.5$~GeV/$c$, $|y|<1$",30,3);
     CentralityCanvas.cd(0,0);
     CentralityCanvas.AddPad(CentralityPad19);
     CentralityCanvas.cd(0,1);
     CentralityCanvas.AddPad(CentralityPad27);
     MyTexFile.AddCanvas(CentralityCanvas);
 
+  double PolarizationMinForPtAndRapidity = -0.16;
+  double PolarizationMaxForPtAndRapidity = 1.84;
     Canvas PtCanvas(1,2);
     Pad PtPad19, PtPad27;
     PtPad19.SetXYTitle("p_{\\mathrm{T}}~(\\mathrm{GeV}/c)",PolarizationTitle);
-    PtPad19.SetXRange(0.3,3.7);
-    PtPad19.SetYRange(-0.22,1.82);
+    PtPad19.SetXRange(0.3,3.78);
+    PtPad19.SetYRange(PolarizationMinForPtAndRapidity,PolarizationMaxForPtAndRapidity);
     PtPad19.DrawZeroLine = true;
     PtPad27.SetPlottingStyle(PtPad19);
     SplittingFigureTools::SetPad(PtPad19);
     SplittingFigureTools::DrawBesIILambda(LambdaStatGraph19GeVPt,LambdaSystGraph19GeVPt);
     SplittingFigureTools::DrawBesIILamBar(LamBarStatGraph19GeVPt,LamBarSystGraph19GeVPt);
-    SplittingFigureTools::DrawInfoText("19.6","20-50\\% Centrality, $|y|<1$",1.4,0.05);
-    SplittingFigureTools::DrawLambdaPointLegend(3.35,1.5);
+    SplittingFigureTools::DrawInfoText("19.6","20-50\\% Centrality, $|y|<1$",2.04,0.06);
+    SplittingFigureTools::DrawLambdaPointLegend(3.3,1.55);
     SplittingFigureTools::SetPad(PtPad27);
     SplittingFigureTools::DrawBesIILambda(LambdaStatGraph27GeVPt,LambdaSystGraph27GeVPt);
     SplittingFigureTools::DrawBesIILamBar(LamBarStatGraph27GeVPt,LamBarSystGraph27GeVPt);
-    SplittingFigureTools::DrawInfoText("27","20-50\\% Centrality, $|y|<1$",1.4,0.05);
+    SplittingFigureTools::DrawInfoText("27","20-50\\% Centrality, $|y|<1$",2.04,0.06);
     PtCanvas.cd(0,0);
     PtCanvas.AddPad(PtPad19);
     PtCanvas.cd(0,1);
@@ -436,19 +476,19 @@ void Plotter(TString OutputFileCommitHash = "test"){
     Canvas RapidityCanvas(1,2);
     Pad RapidityPad19, RapidityPad27;
     RapidityPad19.SetXYTitle("y",PolarizationTitle);
-    RapidityPad19.SetXRange(-1.7,1.7);
-    RapidityPad19.SetYRange(-0.22,1.82);
+    RapidityPad19.SetXRange(-1.75,1.75);
+    RapidityPad19.SetYRange(PolarizationMinForPtAndRapidity,PolarizationMaxForPtAndRapidity);
     RapidityPad19.DrawZeroLine = true;
     RapidityPad27.SetPlottingStyle(RapidityPad19);
     SplittingFigureTools::SetPad(RapidityPad19);
     SplittingFigureTools::DrawBesIILambda(LambdaStatGraph19GeVRapidity,LambdaSystGraph19GeVRapidity);
     SplittingFigureTools::DrawBesIILamBar(LamBarStatGraph19GeVRapidity,LamBarSystGraph19GeVRapidity);
-    SplittingFigureTools::DrawInfoText("19.6","20-50\\% Centrality, $p_{\\mathrm{T}}>0.5$~GeV/$c$",0,.05);
-    SplittingFigureTools::DrawLambdaPointLegend(1.5,1.65);
+    SplittingFigureTools::DrawInfoText("19.6","20-50\\% Centrality, $p_{\\mathrm{T}}>0.5$~GeV/$c$",0,.06);
+    SplittingFigureTools::DrawLambdaPointLegend(1.35,1.6);
     SplittingFigureTools::SetPad(RapidityPad27);
     SplittingFigureTools::DrawBesIILambda(LambdaStatGraph27GeVRapidity,LambdaSystGraph27GeVRapidity);
     SplittingFigureTools::DrawBesIILamBar(LamBarStatGraph27GeVRapidity,LamBarSystGraph27GeVRapidity);
-    SplittingFigureTools::DrawInfoText("27","20-50\\% Centrality, $p_{\\mathrm{T}}>0.5$~GeV/$c$",0,0.05);
+    SplittingFigureTools::DrawInfoText("27","20-50\\% Centrality, $p_{\\mathrm{T}}>0.5$~GeV/$c$",0,0.06);
     RapidityCanvas.cd(0,0);
     RapidityCanvas.AddPad(RapidityPad19);
     RapidityCanvas.cd(0,1);
@@ -488,6 +528,34 @@ void Plotter(TString OutputFileCommitHash = "test"){
     SplittingFigureTools::DrawBesIILamBar(StarBesIILamBarStat,StarBesIILamBarSyst);
     SplittingFigureTools::DrawAliceLambda(AliceLambdaStat,AliceLambdaSyst);
     SplittingFigureTools::DrawAliceLamBar(AliceLamBarStat,AliceLamBarSyst);
+
+    Legend PolarizationVsEnergyLegend(3,4);
+    {
+      double XSep = 5, XStart = -27.8;
+      double YSep = 4, YStart = 5.5;
+      PolarizationVsEnergyLegend.SetXShifts(vector<double>{XStart,XStart+XSep,XStart+1.7*XSep});
+      PolarizationVsEnergyLegend.SetYShifts(vector<double>{YStart,YStart-YSep,YStart-2*YSep,YStart-3*YSep});
+    }
+    PolarizationVsEnergyLegend.SetCenter(300,9.4);
+    PolarizationVsEnergyLegend.SetBorderSize(63,20);
+    PolarizationVsEnergyLegend.AddText(0,0,"$\\Lambda$","center");
+    PolarizationVsEnergyLegend.AddText(1,0,"\\raisebox{0.5mm}{$\\bar{\\Lambda}$}","center");
+    PolarizationVsEnergyLegend.AddMarker(0,1,StarBesIILambdaStat);
+    PolarizationVsEnergyLegend.AddMarker(1,1,StarBesIILamBarStat);
+    PolarizationVsEnergyLegend.AddMarker(0,2,StarBesILambdaStat);
+    PolarizationVsEnergyLegend.AddMarker(1,2,StarBesILamBarStat);
+    PolarizationVsEnergyLegend.AddMarker(0,3,AliceLambdaStat);
+    PolarizationVsEnergyLegend.AddMarker(1,3,AliceLamBarStat);
+    PolarizationVsEnergyLegend.AddText(2,1,"STAR 20-50\\% Au+Au, BES-II","west");
+    PolarizationVsEnergyLegend.AddText(2,2,"STAR 20-50\\% Au+Au, BES-I","west");
+    PolarizationVsEnergyLegend.AddText(2,3,"ALICE 15-50\\% Pb+Pb","west");
+    PolarizationVsEnergyPad.AddLegend(PolarizationVsEnergyLegend);
+    Node PolarizationVsEnergyAlphaTextBox(PolarizationVsEnergyLegend.CenterX,PolarizationVsEnergyLegend.CenterY);
+    PolarizationVsEnergyAlphaTextBox.Shift(0,PolarizationVsEnergyLegend.BorderHeight/2.-1);
+    PolarizationVsEnergyAlphaTextBox.Text = "scaled using $\\alpha_{\\Lambda}$=0.732";
+    PolarizationVsEnergyAlphaTextBox.FillColor = "white";
+    PolarizationVsEnergyPad.AddNode(&PolarizationVsEnergyAlphaTextBox);
+
     Pad PolarizationVsEnergyZoomPad;
     PolarizationVsEnergyZoomPad.XAxis.CustomMajorTicks = {19.6,27};
     PolarizationVsEnergyZoomPad.XAxis.NumMinorTicks = 0;
@@ -517,6 +585,29 @@ void Plotter(TString OutputFileCommitHash = "test"){
     SplittingFigureTools::DrawBesISplitting_Comparison(StarLambdaPolarizationGraphPoints_Comparison,StarLamBarPolarizationGraphPoints_Comparison);
     SplittingFigureTools::DrawBesIISplitting(NineteenGeVLambdaPolarizationGraphPoints,NineteenGeVLamBarPolarizationGraphPoints);
     SplittingFigureTools::DrawAliceSplitting(AlicLambdaPolarizationGraphPoints,AlicLamBarPolarizationGraphPoints);
+
+    Legend SplittingVsEnergyLegend(2,3);
+    {
+      double XSep = 3, XStart = -25;
+      double YSep = 4, YStart = 3;
+      SplittingVsEnergyLegend.SetXShifts(vector<double>{XStart,XStart+XSep});
+      SplittingVsEnergyLegend.SetYShifts(vector<double>{YStart,YStart-YSep,YStart-2*YSep});
+    }
+    SplittingVsEnergyLegend.SetCenter(340,-.9);
+    SplittingVsEnergyLegend.SetBorderSize(57,16);
+    SplittingVsEnergyLegend.AddMarker(0,0,SplittingFigureTools::BesIISplittingGraphStyle());
+    SplittingVsEnergyLegend.AddMarker(0,1,SplittingFigureTools::BesISplittingGraphStyle());
+    SplittingVsEnergyLegend.AddMarker(0,2,SplittingFigureTools::AliceSplittingGraphStyle());
+    SplittingVsEnergyLegend.AddText(1,0,"STAR 20-50\\% Au+Au, BES-II","west");
+    SplittingVsEnergyLegend.AddText(1,1,"STAR 20-50\\% Au+Au, BES-I","west");
+    SplittingVsEnergyLegend.AddText(1,2,"ALICE 15-50\\% Pb+Pb","west");
+    SplittingVsEnergyPad.AddLegend(SplittingVsEnergyLegend);
+    Node SplittingVsEnergyAlphaTextBox(SplittingVsEnergyLegend.CenterX,SplittingVsEnergyLegend.CenterY);
+    SplittingVsEnergyAlphaTextBox.Shift(0,SplittingVsEnergyLegend.BorderHeight/2.+1);
+    SplittingVsEnergyAlphaTextBox.Text = "scaled using $\\alpha_{\\Lambda}$=0.732";
+    SplittingVsEnergyAlphaTextBox.FillColor = "white";
+    SplittingVsEnergyPad.AddNode(&SplittingVsEnergyAlphaTextBox);
+
     Pad SplittingVsEnergyZoomPad;
     SplittingVsEnergyZoomPad.XAxis.CustomMajorTicks = {19.6,27};
     SplittingVsEnergyZoomPad.XAxis.NumMinorTicks = 0;
@@ -561,8 +652,8 @@ void Plotter(TString OutputFileCommitHash = "test"){
     Legend ResolutionLegend(2,2);
     ResolutionLegend.SetXShifts(vector<double>{-8,-5});
     ResolutionLegend.SetYShifts(vector<double>{0,-5});
-    ResolutionLegend.SetCenter(25,0.25);
-    ResolutionLegend.SetBorderSize(25,15);
+    ResolutionLegend.SetCenter(32,0.25);
+    ResolutionLegend.SetBorderSize(27,17);
     ResolutionLegend.SetTitle(Form("$%s$",sNNTitle.Data()));
     ResolutionLegend.SetTitleShift(0,5);
     ResolutionLegend.AddText(1,0,"19.6 GeV","west");
