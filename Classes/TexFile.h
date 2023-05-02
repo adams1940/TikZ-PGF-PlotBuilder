@@ -1,7 +1,7 @@
 #ifndef TEXFILE_HPP
 #define TEXFILE_HPP
 
-#include "PgfCanvas.h"
+#include "Canvas.h"
 #include "Graph.h"
 #include "Axis.h"
 #include "Node.h"
@@ -46,7 +46,7 @@ public:
     gSystem->Exec(Form("cd Output/%s; pdflatex -shell-escape %s; cd ../../",FileName.Data(),FileName.Data()));
   } // ~TexFile
 
-  void AddCanvas(PgfCanvas Canvas){
+  void AddCanvas(Canvas Canvas){
     File<<"%%%%%%%%%%%%%%%%%%%%%%%% figure "<<FigureCounter++<<" below %%%%%%%%%%%%%%%%%%%%%%%%\n";
     File<<"\\begin{tikzpicture}\n";
     for( TString Line:Canvas.LatexLines() ) AddLine(Line);

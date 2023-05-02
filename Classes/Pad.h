@@ -4,6 +4,7 @@
 #include "Axis.h"
 #include "Node.h"
 #include "Graph.h"
+#include "TextBox.h"
 
 class Pad{
 private:
@@ -54,6 +55,34 @@ public:
   }
 
   void AddNode(Node * node){ Nodes.push_back(node); }
+
+  void DrawLegendMarkerAt(Graph &graph, double x, double ShiftX, double y, double ShiftY){ // can only do this once per graph :/
+    for( Marker &Style:graph.MarkerStyles ){
+      Style.SetAnchorPosition(x,y);
+      Style.ShiftX = ShiftX;
+      Style.ShiftY = ShiftY;
+      AddNode(&Style);
+    }
+  }
+
+  TextBox * LegendText(TString Text, double x, double ShiftX, double y, double ShiftY){
+    TextBox * text = new TextBox(x,y);
+    text->Text = Text;
+    text->ShiftX = ShiftX;
+    text->ShiftY = ShiftY;
+    return text;
+  }
+
+  void DrawLegendTitleAt(TString Text, double x, double ShiftX, double y, double ShiftY){
+    TextBox * text = LegendText(Text,x,ShiftX,y,ShiftY);
+    AddNode(text);
+  }
+
+  void DrawLegendTextAt(TString Text, double x, double ShiftX, double y, double ShiftY){
+    TextBox * text = LegendText(Text,x,ShiftX,y,ShiftY);
+    text->Anchor = "west";
+    AddNode(text);
+  }
 
 };
 #endif

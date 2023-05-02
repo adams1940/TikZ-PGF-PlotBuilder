@@ -1,12 +1,12 @@
-#ifndef PGFCANVAS_HPP
-#define PGFCANVAS_HPP
+#ifndef CANVAS_HPP
+#define CANVAS_HPP
 
 #include "Graph.h"
 #include "Axis.h"
 #include "Node.h"
 #include "Pad.h"
 
-class PgfCanvas{
+class Canvas{
 private:
   TString AxisOption(TString Text ){
     return Form("\t\t%s,",Text.Data());
@@ -23,10 +23,10 @@ public:
   int ActiveColX, ActiveRowY;
   vector<Pad> Pads[10][10]; // Ideally would be [NumDivisionsX][NumDivisionsY]
 
-  PgfCanvas(int NX = 1, int NY = 1):NumDivisionsX(NX),NumDivisionsY(NY){
+  Canvas(int NX = 1, int NY = 1):NumDivisionsX(NX),NumDivisionsY(NY){
     cd();
   }
-  virtual ~PgfCanvas(){}
+  virtual ~Canvas(){}
 
   void cd(int X = 0, int Y = 0, int I = 0){
     if( X>=NumDivisionsX || Y>=NumDivisionsY ){
