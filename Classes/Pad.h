@@ -12,7 +12,7 @@ private:
 public:
   Axis XAxis, YAxis;
   vector<Graph> Graphs;
-  vector<Node *> Nodes;
+  vector<Node *> Nodes; // By storing pointers, we can call functions overloaded by derived classes. But it's a tradeoff...
   bool DrawZeroLine;
   double XLabelOffsetY, YLabelOffsetX;
   double Width, Height; // mm
