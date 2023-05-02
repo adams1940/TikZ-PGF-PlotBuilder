@@ -10,6 +10,7 @@ TString sNNTitle = "\\sqrt{s_\\mathrm{NN}}";
 #include "Classes/Canvas.h"
 #include "Classes/TexFile.h"
 #include "Classes/Pad.h"
+#include "Classes/Legend.h"
 
 namespace SplittingFigureTools{
   Marker BesIILambdaMarkerStyle, BesIILamBarMarkerStyle, BesIILamBarInnerMarkerStyle;
@@ -541,11 +542,6 @@ void Plotter(TString OutputFileCommitHash = "test"){
     Graph Resolution27GeV = ConvertTh1ToGraph( *((TH1D*)ResolutionFile27GeV.Get("Centrality_Resolution_FullEpd")) );
     for( int i=0; i<Resolution19GeV.GetN(); i++ ) Resolution19GeV.SetPointY(i,Res19GeV[i]);
     for( int i=0; i<Resolution27GeV.GetN(); i++ ) Resolution27GeV.SetPointY(i,Res27GeV[i]);
-    Canvas ResolutionCanvas(1,1);
-    Pad ResolutionPad;
-    ResolutionPad.SetXYTitle("\\mathrm{Centrality}~(\\%)","R_{\\mathrm{EP}}^{(1)}");
-    ResolutionPad.SetXRange(-5,85);
-    ResolutionPad.SetYRange(0,0.65);
     Marker Resolution19GeVMarkerStyle, Resolution27GeVMarkerStyle;
     Resolution19GeVMarkerStyle.Shape = "circle";
     Resolution19GeVMarkerStyle.Size = 2;
@@ -555,32 +551,25 @@ void Plotter(TString OutputFileCommitHash = "test"){
     Resolution27GeVMarkerStyle.FillColor = "red";
     Resolution19GeV.AddMarkerStyle(Resolution19GeVMarkerStyle);
     Resolution27GeV.AddMarkerStyle(Resolution27GeVMarkerStyle);
-    ResolutionPad.AddGraph(Resolution19GeV);
-    ResolutionPad.AddGraph(Resolution27GeV);
-    double ResolutionLegendX = 25, ResolutionLegendY = 0.25;
-    double ResolutionLegendMarkerXShift = -8;
-    double ResolutionLegendLabelXShift = -5;
-    double ResolutionLegendFirstRowYShift = 0;
-    double ResolutionLegendSecndRowYShift = -5;
-    double ResolutionLegendEnergyTextYShift = 5;
-    Box ResolutionLegendBox(ResolutionLegendX,ResolutionLegendY);
-    ResolutionLegendBox.Width = 25;
-    ResolutionLegendBox.Height = 15;
-    ResolutionPad.AddNode(&ResolutionLegendBox);
-    TextBox ResolutionLegendEnergyText(ResolutionLegendX,ResolutionLegendY);
-    ResolutionLegendEnergyText.ShiftY = 5;
-    ResolutionPad.AddNode(&ResolutionLegendEnergyText);
-    ResolutionPad.DrawLegendTitleAt(Form("$%s$",sNNTitle.Data()),ResolutionLegendX,0,ResolutionLegendY,ResolutionLegendEnergyTextYShift);
-    ResolutionPad.DrawLegendMarkerAt(Resolution19GeV,ResolutionLegendX,ResolutionLegendMarkerXShift,ResolutionLegendY,ResolutionLegendFirstRowYShift);
-    ResolutionPad.DrawLegendMarkerAt(Resolution27GeV,ResolutionLegendX,ResolutionLegendMarkerXShift,ResolutionLegendY,ResolutionLegendSecndRowYShift);
-    ResolutionPad.DrawLegendTextAt("19.6 GeV",ResolutionLegendX,ResolutionLegendLabelXShift,ResolutionLegendY,ResolutionLegendFirstRowYShift);
-    ResolutionPad.DrawLegendTextAt("27 GeV",ResolutionLegendX,ResolutionLegendLabelXShift,ResolutionLegendY,ResolutionLegendSecndRowYShift);
-    ResolutionCanvas.AddPad(ResolutionPad);
-    MyTexFile.AddCanvas(ResolutionCanvas);
+    Canvas NewResolutionCanvas(1,1);
+    Pad NewResolutionPad;
+    NewResolutionPad.SetXYTitle("\\mathrm{Centrality}~(\\%)","R_{\\mathrm{EP}}^{(1)}");
+    NewResolutionPad.SetXRange(-5,85);
+    NewResolutionPad.SetYRange(0,0.65);
+    NewResolutionPad.AddGraph(Resolution19GeV);
+    NewResolutionPad.AddGraph(Resolution27GeV);
+    Legend ResolutionLegend(2,2);
+    ResolutionLegend.SetXShifts(vector<double>{-8,-5});
+    ResolutionLegend.SetYShifts(vector<double>{0,-5});
+    ResolutionLegend.SetCenter(25,0.25);
+    ResolutionLegend.SetBorderSize(25,15);
+    ResolutionLegend.SetTitle(Form("$%s$",sNNTitle.Data()));
+    ResolutionLegend.SetTitleShift(0,5);
+    ResolutionLegend.AddText(1,0,"19.6 GeV","west");
+    ResolutionLegend.AddText(1,1,"27 GeV","west");
+    ResolutionLegend.AddMarker(0,1,Resolution27GeV);
+    ResolutionLegend.AddMarker(0,0,Resolution19GeV);
+    NewResolutionPad.AddLegend(ResolutionLegend);
+    NewResolutionCanvas.AddPad(NewResolutionPad);
+    MyTexFile.AddCanvas(NewResolutionCanvas);
 }
-
-// class Legend{
-// private:
-// public:
-//   double 
-// };
