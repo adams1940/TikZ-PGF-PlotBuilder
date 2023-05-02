@@ -15,7 +15,6 @@ public:
   double Width, Height; // mm
   vector<Axis> XAxes, YAxes;
   vector<Graph> Graphs[10][10]; // Ideally would be [NumDivisionsX][NumDivisionsY]
-  vector<TString> AdditionalNodes[10][10]; // Ideally would be [NumDivisionsX][NumDivisionsY]
   vector<Node*> Nodes[10][10]; // Ideally would be [NumDivisionsX][NumDivisionsY]
   vector<vector<bool>> DrawZeroLinesVector;
   double XLabelOffsetY, YLabelOffsetX;
@@ -102,10 +101,6 @@ public:
 
   void DrawZeroLine(){
     DrawZeroLinesVector[ActiveColX][ActiveRowY] = true;
-  }
-
-  void AddNode(TString Text){
-    AdditionalNodes[ActiveColX][ActiveRowY].push_back(Text);
   }
 
   void AddNode(Node * node){
