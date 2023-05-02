@@ -8,26 +8,22 @@
 
 class PgfCanvas{
 private:
+  TString AxisOption(TString Text ){
+    return Form("\t\t%s,",Text.Data());
+  }
+  TString PictureLine(TString Text ){
+    return Form("\t%s",Text.Data());
+  }
+
+  TString CanvasName(int ColX, int RowY, int iPad){ return Form("ColX%i_RowY%i_Pad%i",ColX,RowY,iPad); }
+  TString SubPadCoordinateName(int ColX, int RowY, int iPad){ return Form("ColX%iRowY%iSubPad%iPosition",ColX,RowY,iPad); }
 
 public:
   int NumDivisionsX, NumDivisionsY;
   int ActiveColX, ActiveRowY;
-  double Width, Height; // mm
-  vector<Axis> XAxes, YAxes;
-  vector<Graph> Graphs[10][10]; // Ideally would be [NumDivisionsX][NumDivisionsY]
-  vector<Node*> Nodes[10][10]; // Ideally would be [NumDivisionsX][NumDivisionsY]
-  vector<vector<bool>> DrawZeroLinesVector;
-  double XLabelOffsetY, YLabelOffsetX;
   vector<Pad> Pads[10][10]; // Ideally would be [NumDivisionsX][NumDivisionsY]
 
   PgfCanvas(int NX = 1, int NY = 1):NumDivisionsX(NX),NumDivisionsY(NY){
-    Width = 100/(double)NX;
-    Height = 0.9*Width;
-    XAxes.resize(NX);
-    YAxes.resize(NY);
-    XLabelOffsetY = -0.07;
-    YLabelOffsetX = -0.161;
-    for( int iX=0; iX<NX; iX++ ) DrawZeroLinesVector.push_back(vector<bool>(NY));
     cd();
   }
   virtual ~PgfCanvas(){}
@@ -42,80 +38,6 @@ public:
   }
 
   void AddPad(Pad &pad){ Pads[ActiveColX][ActiveRowY].push_back(pad); }
-
-  Axis& ActiveXAxis(){ return XAxes[ActiveColX]; }
-  Axis& ActiveYAxis(){ return YAxes[ActiveRowY]; }
-
-  void AddGraph(Graph gr){
-    Graphs[ActiveColX][ActiveRowY].push_back(gr);
-  }
-
-  void SetXTitle(TString Title){
-    XAxes[ActiveColX].Title = Title;
-  }
-
-  void SetYTitle(TString Title){
-    YAxes[ActiveRowY].Title = Title;
-  }
-
-  void SetXYTitles(TString XTitle, TString YTitle){
-    for( Axis &axis:XAxes ) axis.Title = XTitle;
-    for( Axis &axis:YAxes ) axis.Title = YTitle;
-  }
-
-  void SetXRange(double Min, double Max){
-    XAxes[ActiveColX].Min = Min;
-    XAxes[ActiveColX].Max = Max;
-  }
-
-  void SetYRange(double Min, double Max){
-    YAxes[ActiveRowY].Min = Min;
-    YAxes[ActiveRowY].Max = Max;
-  }
-
-  void SetXRanges(double Min, double Max){
-    for( Axis &axis:XAxes ){
-      axis.Min = Min;
-      axis.Max = Max;
-    }
-  }
-
-  void SetYRanges(double Min, double Max){
-    for( Axis &axis:YAxes ){
-      axis.Min = Min;
-      axis.Max = Max;
-    }
-  }
-
-  void SetLogX(){
-    for( Axis &axis:XAxes ) axis.IsLog=true;
-  }
-
-  void DrawZeroLines(){
-    for( int iX=0; iX<NumDivisionsX; iX++ ){
-      for( int iY=0; iY<NumDivisionsY; iY++ ){
-        DrawZeroLinesVector[iX][iY] = true;
-      }
-    }
-  }
-
-  void DrawZeroLine(){
-    DrawZeroLinesVector[ActiveColX][ActiveRowY] = true;
-  }
-
-  void AddNode(Node * node){
-    Nodes[ActiveColX][ActiveRowY].push_back(node);
-  }
-
-  TString CanvasName(int ColX, int RowY, int iPad){ return Form("ColX%i_RowY%i_Pad%i",ColX,RowY,iPad); }
-  TString SubPadCoordinateName(int ColX, int RowY, int iPad){ return Form("ColX%iRowY%iSubPad%iPosition",ColX,RowY,iPad); }
-
-  TString AxisOption(TString Text ){
-    return Form("\t\t%s,",Text.Data());
-  }
-  TString PictureLine(TString Text ){
-    return Form("\t%s",Text.Data());
-  }
 
   vector<TString> LatexLines(){
     vector<TString> Lines;
