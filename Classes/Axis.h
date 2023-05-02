@@ -10,12 +10,14 @@ public:
   vector<double> CustomMajorTicks, CustomMinorTicks;
   TString Title, TitleSize;
   bool IsLog;
+  bool DrawTicks;
   Axis(){
     NumMinorTicks = 4;
     Min = 0;
     Max = 1;
     TitleSize = "\\large";
     IsLog = false;
+    DrawTicks = true;
   }
   virtual ~Axis(){};
 };

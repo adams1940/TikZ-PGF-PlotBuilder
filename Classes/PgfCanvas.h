@@ -198,6 +198,9 @@ public:
           }
           Lines.push_back(AxisOption(Form("\t\tminor y tick num = %i",pad.YAxis.NumMinorTicks)));
 
+          if( !pad.XAxis.DrawTicks ) Lines.push_back(AxisOption("\t\txtick=\\empty"));
+          if( !pad.YAxis.DrawTicks ) Lines.push_back(AxisOption("\t\tytick=\\empty"));
+
           Lines.push_back("\t]");
 
           if( pad.DrawZeroLine ) Lines.push_back(PictureLine(Form("\\addplot[color=gray, forget plot, /tikz/densely dotted, ] coordinates{(%f,0)(%f,0)};",pad.XAxis.Min,pad.XAxis.Max)));
