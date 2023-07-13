@@ -427,6 +427,18 @@ void Plotter(TString OutputFileCommitHash = "test"){
     TexFile MyTexFile(OutputFileCommitHash);
     SplittingFigureTools::SetMarkerStyles();
 
+    Node * ASubPlot = new Node; ASubPlot->Text = "(a)"; ASubPlot->IncludeDraw = false;
+    Node * BSubPlot = new Node; BSubPlot->Text = "(b)"; BSubPlot->IncludeDraw = false;
+    double SubPlotFractionAlongX, SubPlotFractionAlongY;
+    double SubPlotPlacementAlongX, SubPlotPlacementAlongY;
+
+    SubPlotFractionAlongX = 0.92;
+    SubPlotFractionAlongY = 0.9;
+    SubPlotPlacementAlongX = SubPlotFractionAlongX*(90+5)-5;
+    SubPlotPlacementAlongY = SubPlotFractionAlongY*(3.6+.7)-.7;
+    ASubPlot->SetAnchorPosition(SubPlotPlacementAlongX,SubPlotPlacementAlongY);
+    BSubPlot->SetAnchorPosition(SubPlotPlacementAlongX,SubPlotPlacementAlongY);
+
     Canvas CentralityCanvas(1,2);
     Pad CentralityPad19, CentralityPad27;
     CentralityPad19.SetXYTitle("\\mathrm{Centrality}~(\\%)",PolarizationTitle);
@@ -443,6 +455,8 @@ void Plotter(TString OutputFileCommitHash = "test"){
     SplittingFigureTools::DrawBesIILambda(LambdaStatGraph27GeVCentrality,LambdaSystGraph27GeVCentrality);
     SplittingFigureTools::DrawBesIILamBar(LamBarStatGraph27GeVCentrality,LamBarSystGraph27GeVCentrality);
     SplittingFigureTools::DrawInfoText("27","$p_{\\mathrm{T}}>0.5$~GeV/$c$, $|y|<1$",30,3);
+    CentralityPad19.AddNode(ASubPlot);
+    CentralityPad27.AddNode(BSubPlot);
     CentralityCanvas.cd(0,0);
     CentralityCanvas.AddPad(CentralityPad19);
     CentralityCanvas.cd(0,1);
@@ -451,6 +465,12 @@ void Plotter(TString OutputFileCommitHash = "test"){
 
   double PolarizationMinForPtAndRapidity = -0.16;
   double PolarizationMaxForPtAndRapidity = 1.84;
+    SubPlotFractionAlongX = 0.08;
+    SubPlotFractionAlongY = 0.9;
+    SubPlotPlacementAlongX = SubPlotFractionAlongX*(3.78-0.3)+0.3;
+    SubPlotPlacementAlongY = SubPlotFractionAlongY*(PolarizationMaxForPtAndRapidity-PolarizationMinForPtAndRapidity)+PolarizationMinForPtAndRapidity;
+    ASubPlot->SetAnchorPosition(SubPlotPlacementAlongX,SubPlotPlacementAlongY);
+    BSubPlot->SetAnchorPosition(SubPlotPlacementAlongX,SubPlotPlacementAlongY);
     Canvas PtCanvas(1,2);
     Pad PtPad19, PtPad27;
     PtPad19.SetXYTitle("p_{\\mathrm{T}}~(\\mathrm{GeV}/c)",PolarizationTitle);
@@ -467,12 +487,20 @@ void Plotter(TString OutputFileCommitHash = "test"){
     SplittingFigureTools::DrawBesIILambda(LambdaStatGraph27GeVPt,LambdaSystGraph27GeVPt);
     SplittingFigureTools::DrawBesIILamBar(LamBarStatGraph27GeVPt,LamBarSystGraph27GeVPt);
     SplittingFigureTools::DrawInfoText("27","20-50\\% Centrality, $|y|<1$",2.04,0.06);
+    PtPad19.AddNode(ASubPlot);
+    PtPad27.AddNode(BSubPlot);
     PtCanvas.cd(0,0);
     PtCanvas.AddPad(PtPad19);
     PtCanvas.cd(0,1);
     PtCanvas.AddPad(PtPad27);
     MyTexFile.AddCanvas(PtCanvas);
 
+    SubPlotFractionAlongX = 0.08;
+    SubPlotFractionAlongY = 0.9;
+    SubPlotPlacementAlongX = SubPlotFractionAlongX*(1.75+1.75)-1.75;
+    SubPlotPlacementAlongY = SubPlotFractionAlongY*(PolarizationMaxForPtAndRapidity-PolarizationMinForPtAndRapidity)+PolarizationMinForPtAndRapidity;
+    ASubPlot->SetAnchorPosition(SubPlotPlacementAlongX,SubPlotPlacementAlongY);
+    BSubPlot->SetAnchorPosition(SubPlotPlacementAlongX,SubPlotPlacementAlongY);
     Canvas RapidityCanvas(1,2);
     Pad RapidityPad19, RapidityPad27;
     RapidityPad19.SetXYTitle("y",PolarizationTitle);
@@ -489,6 +517,8 @@ void Plotter(TString OutputFileCommitHash = "test"){
     SplittingFigureTools::DrawBesIILambda(LambdaStatGraph27GeVRapidity,LambdaSystGraph27GeVRapidity);
     SplittingFigureTools::DrawBesIILamBar(LamBarStatGraph27GeVRapidity,LamBarSystGraph27GeVRapidity);
     SplittingFigureTools::DrawInfoText("27","20-50\\% Centrality, $p_{\\mathrm{T}}>0.5$~GeV/$c$",0,0.06);
+    RapidityPad19.AddNode(ASubPlot);
+    RapidityPad27.AddNode(BSubPlot);
     RapidityCanvas.cd(0,0);
     RapidityCanvas.AddPad(RapidityPad19);
     RapidityCanvas.cd(0,1);
@@ -555,6 +585,12 @@ void Plotter(TString OutputFileCommitHash = "test"){
     PolarizationVsEnergyAlphaTextBox.Text = "scaled using $\\alpha_{\\Lambda}$=0.732";
     PolarizationVsEnergyAlphaTextBox.FillColor = "white";
     PolarizationVsEnergyPad.AddNode(&PolarizationVsEnergyAlphaTextBox);
+    SubPlotPlacementAlongX = 3;
+    SubPlotFractionAlongY = 0.9;
+    SubPlotPlacementAlongY = SubPlotFractionAlongY*(12+1)-1;
+    ASubPlot->SetAnchorPosition(SubPlotPlacementAlongX,SubPlotPlacementAlongY);
+    SubPlotPlacementAlongY = SubPlotFractionAlongY*(2.35+1.69)-1.69;
+    BSubPlot->SetAnchorPosition(SubPlotPlacementAlongX,SubPlotPlacementAlongY);
 
     Pad PolarizationVsEnergyZoomPad;
     PolarizationVsEnergyZoomPad.XAxis.CustomMajorTicks = {19.6,27};
@@ -572,6 +608,7 @@ void Plotter(TString OutputFileCommitHash = "test"){
     SplittingFigureTools::DrawBesIILambda_Zoom(StarBesIILambdaStat,StarBesIILambdaSyst);
     SplittingFigureTools::DrawBesIILamBar_Zoom(StarBesIILamBarStat,StarBesIILamBarSyst);
     EnergyFinalCanvas.cd(0,0);
+    PolarizationVsEnergyPad.AddNode(ASubPlot);
     EnergyFinalCanvas.AddPad(PolarizationVsEnergyPad);
     EnergyFinalCanvas.AddPad(PolarizationVsEnergyZoomPad);
     Pad SplittingVsEnergyPad;
@@ -620,6 +657,7 @@ void Plotter(TString OutputFileCommitHash = "test"){
     SplittingVsEnergyZoomPad.SubPadY = 1.38;
     SplittingFigureTools::SetPad(SplittingVsEnergyZoomPad);
     SplittingFigureTools::DrawBesIISplitting_Zoom(NineteenGeVLambdaPolarizationGraphPoints,NineteenGeVLamBarPolarizationGraphPoints);
+    SplittingVsEnergyPad.AddNode(BSubPlot);
     EnergyFinalCanvas.cd(0,1);
     EnergyFinalCanvas.AddPad(SplittingVsEnergyPad);
     EnergyFinalCanvas.AddPad(SplittingVsEnergyZoomPad);
